@@ -1,0 +1,44 @@
+name: Windows and Linux desktop
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            command: npm run dist:win
+          - os: ubuntu-24.04
+            command: npm run dist:linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - if: runner.os == 'Windows'
+        run: npm run test:desktop
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:desktop
+        env:
+          ELECTRON_TEST_CONTAINER: '1'
+      - run: ${{ matrix.command }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MarkdownRE-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.zip
+            release/*.AppImage
+            release/*.tar.gz
+          if-no-files-found: error

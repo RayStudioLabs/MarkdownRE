@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Markdown 语法</title>
+<style>
+:root { color-scheme: light; --background:#fff; --text:#252a30; --muted:#57636a; --accent:#0969da; }
+:root[data-theme=dark] { color-scheme:dark; --background:#1e1e1e; --text:#e0e0e0; --muted:#b6b6b6; --accent:#79baff; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--background); color:var(--text); font:14px/1.65 -apple-system,BlinkMacSystemFont,sans-serif; }
+main { max-width:860px; margin:auto; padding:32px 36px 60px; }
+h1 { margin:0 0 4px; font-size:28px; letter-spacing:-.02em; }
+.intro { margin:0 0 28px; color:var(--muted); }
+h2 { margin:30px 0 8px; padding-bottom:6px; font-size:19px; border-bottom:1px solid color-mix(in srgb,var(--text) 20%,transparent); }
+h3 { margin:18px 0 6px; font-size:15px; }
+p { margin:8px 0; }
+pre { margin:8px 0 14px; padding:12px 14px; white-space:pre-wrap; overflow-wrap:anywhere; background:color-mix(in srgb,var(--text) 8%,var(--background)); border:1px solid color-mix(in srgb,var(--text) 12%,transparent); border-radius:6px; font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace; }
+code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+p code, li code { padding:1px 4px; border-radius:3px; background:color-mix(in srgb,var(--text) 9%,var(--background)); }
+ul { padding-left:22px; } li { margin:5px 0; }
+.note { padding:10px 14px; margin:14px 0; border-left:3px solid var(--accent); background:color-mix(in srgb,var(--accent) 9%,var(--background)); }
+</style>
+</head>
+<body><main>
+<h1>Markdown 语法</h1>
+<p class="intro">以下示例适用于 MarkdownRE 当前的预览功能。将示例输入编辑器，即可在预览窗口查看效果。</p>
+
+<h2>基本语法</h2>
+<h3>标题与段落</h3>
+<p>用一到六个 <code>#</code> 加空格创建标题；段落之间空一行。</p>
+<pre><code># 一级标题
+## 二级标题
+### 三级标题
+
+这是第一段。
+
+这是第二段。</code></pre>
+<h3>强调、删除线与行内代码</h3>
+<pre><code>**粗体**  *斜体*  ~~删除线~~
+使用 `代码` 显示行内代码。</code></pre>
+<h3>引用、列表与分隔线</h3>
+<pre><code>&gt; 这是一段引用。
+&gt; 可以继续引用。
+
+- 无序列表项目
+- 另一个项目
+  - 缩进后的子项目
+
+1. 有序列表项目
+2. 另一个项目
+
+---</code></pre>
+<h3>链接与图片</h3>
+<pre><code>[链接文字](https://example.com)
+![图片说明](images/example.png)</code></pre>
+<p>本地图片的相对路径以 Markdown 文件所在目录为起点，目前可加载该目录及其子目录中的图片；远程图片默认加载。</p>
+<h3>代码块</h3>
+<p>用三个反引号包围代码，可在起始行注明语言名称以启用语法高亮。</p>
+<pre><code>```javascript
+const message = "Hello, Markdown!";
+```</code></pre>
+
+<h2>常用扩展语法</h2>
+<h3>表格</h3>
+<pre><code>| 名称 | 数量 | 价格 |
+| :--- | ---: | :---: |
+| 苹果 | 2 | 10 |
+| 梨 | 3 | 12 |</code></pre>
+<p>分隔行中的冒号可指定左对齐、右对齐或居中。</p>
+<h3>任务列表与自动链接</h3>
+<pre><code>- [x] 已完成
+- [ ] 待完成
+
+https://example.com</code></pre>
+<p>任务列表在预览中用于展示；要修改状态，请在编辑器中修改 <code>[ ]</code> 或 <code>[x]</code>。</p>
+
+<h2>数学公式</h2>
+<h3>行内公式</h3>
+<p>用一对美元符号包围 LaTeX 数学表达式，使公式出现在正文中：</p>
+<pre><code>勾股定理：$a^2 + b^2 = c^2$
+分数：$\frac{1}{2}$</code></pre>
+<h3>独立公式块</h3>
+<p>将两个美元符号分别放在公式前后的独立行：</p>
+<pre><code>$$
+\int_0^1 x^2 \, dx = \frac{1}{3}
+$$</code></pre>
+<p>也可以使用标记为 <code>math</code> 的代码块：</p>
+<pre><code>```math
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+```</code></pre>
+<div class="note">公式由 MathJax 渲染，支持许多常用 LaTeX 数学命令，但不等同于完整的 LaTeX。当前不支持用 <code>\(...\)</code> 或 <code>\[...\]</code> 作为 Markdown 公式分隔符。</div>
+<h3>常用公式写法</h3>
+<ul>
+<li>上下标：<code>$x^2$</code>、<code>$a_i$</code>；多个字符用花括号，如 <code>$x^{n+1}$</code>。</li>
+<li>分数与根号：<code>$\frac{a}{b}$</code>、<code>$\sqrt{x}$</code>。</li>
+<li>希腊字母：<code>$\alpha$</code>、<code>$\beta$</code>、<code>$\pi$</code>。</li>
+<li>求和与积分：<code>$\sum_{i=1}^{n} i$</code>、<code>$\int_0^1 f(x)\,dx$</code>。</li>
+</ul>
+<h2>其他说明</h2>
+<ul>
+<li>在特殊符号前输入反斜杠，可以显示符号本身，例如 <code>\*</code>。</li>
+<li>普通行内代码和代码块中的内容按代码显示，不作为 Markdown 或公式解析；标记为 math 的代码块用于显示公式。</li>
+<li>部分原始 HTML 可能被过滤；脚本和不安全的内容不会执行。</li>
+</ul>
+</main></body></html>

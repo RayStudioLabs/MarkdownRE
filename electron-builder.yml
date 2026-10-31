@@ -1,0 +1,50 @@
+appId: net.markdownre.desktop
+productName: MarkdownRE
+copyright: Copyright © 2026 RayStudioLabs
+asar: true
+npmRebuild: false
+directories:
+  output: release
+files:
+  - desktop/**
+  - web-dist/**
+  - macos/assets/MarkdownRE.png
+  - THIRD_PARTY_NOTICES.md
+  - THIRD_PARTY_LICENSES.txt
+  - LICENSE
+  - package.json
+artifactName: '${productName}-${version}-${os}-${arch}.${ext}'
+win:
+  icon: macos/assets/MarkdownRE.png
+  target:
+    - nsis
+    - zip
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+linux:
+  icon: macos/assets/MarkdownRE.png
+  category: Office
+  maintainer: RayStudioLabs
+  extraResources:
+    - from: desktop/assets
+      to: markdown-document-icons
+      filter:
+        - install-linux-document-icons.sh
+        - document-icons/**
+  target:
+    - AppImage
+    - tar.gz
+  executableName: markdownre
+  desktop:
+    entry:
+      MimeType: text/markdown;text/plain;
+fileAssociations:
+  - ext: md
+    name: MarkdownRE.Markdown
+    description: Markdown document
+    mimeType: text/markdown
+    icon: desktop/assets/MarkdownDocument.ico
+    role: Editor

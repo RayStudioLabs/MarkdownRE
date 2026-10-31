@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<title>MarkdownRE document icon</title>
+<defs>
+  <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+    <stop offset="0" stop-color="#fffaf1"/><stop offset="0.55" stop-color="#f9f0e3"/><stop offset="1" stop-color="#eee2d0"/>
+  </linearGradient>
+  <linearGradient id="fold" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+    <stop offset="0" stop-color="#eee2d0"/><stop offset="1" stop-color="#dfd1be"/>
+  </linearGradient>
+  <linearGradient id="ink" x1="0" y1="0" x2="0.8" y2="1" gradientUnits="objectBoundingBox">
+    <stop offset="0" stop-color="#242528"/><stop offset="1" stop-color="#101215"/>
+  </linearGradient>
+</defs>
+<!-- Document silhouette retains a transparent margin and folded corner. -->
+<path d="M 238 74 H 622 L 824 276 V 891 Q 824 940 775 940 H 238 Q 189 940 189 891 V 123 Q 189 74 238 74 Z" fill="#665a4e" opacity="0.12" transform="translate(0 12)"/>
+<path d="M 238 74 H 622 L 824 276 V 891 Q 824 940 775 940 H 238 Q 189 940 189 891 V 123 Q 189 74 238 74 Z" fill="url(#paper)" stroke="#dacdbc" stroke-width="5" stroke-linejoin="round"/>
+<path d="M 622 74 V 223 Q 622 276 675 276 H 824 Z" fill="url(#fold)" stroke="#dacdbc" stroke-width="5" stroke-linejoin="round"/>
+<!-- The same MR glyph as the application icon. -->
+<g transform="translate(505 585) scale(1.74 1.88) translate(-294 -713)">
+<path fill="url(#ink)" fill-rule="evenodd" d="M 158 617 L 259 718 L 315 672 L 315 728 L 259 781 L 207 730 L 207 811 L 158 811 Z M 245 615 L 375 615 C 410 615 429 640 429 671 C 429 704 409 725 366 741 L 430 811 L 366 811 L 326 770 L 326 703 L 355 703 C 382 703 382 661 355 661 L 288 661 Z"/>
+</g>
+</svg>

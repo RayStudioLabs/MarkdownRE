@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<title>MarkdownRE — MR warm ivory application icon</title>
+<defs>
+  <linearGradient id="ivory" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+    <stop offset="0" stop-color="#fffaf1"/><stop offset="0.55" stop-color="#f9f0e3"/><stop offset="1" stop-color="#eee2d0"/>
+  </linearGradient>
+  <linearGradient id="ink" x1="0" y1="0" x2="0.8" y2="1" gradientUnits="objectBoundingBox">
+    <stop offset="0" stop-color="#242528"/><stop offset="1" stop-color="#101215"/>
+  </linearGradient>
+</defs>
+<!-- Safe padding and transparent corners; monogram vector redrawn from the selected preview. -->
+<rect x="56" y="56" width="912" height="912" rx="204" fill="url(#ivory)"/>
+<g transform="translate(510 549) scale(2.43 2.67) translate(-288 -720)">
+<path fill="url(#ink)" fill-rule="evenodd" d="M 158 617 L 259 718 L 315 672 L 315 728 L 259 781 L 207 730 L 207 811 L 158 811 Z M 245 615 L 375 615 C 410 615 429 640 429 671 C 429 704 409 725 366 741 L 430 811 L 366 811 L 326 770 L 326 703 L 355 703 C 382 703 382 661 355 661 L 288 661 Z"/>
+</g>
+</svg>

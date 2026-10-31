@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MarkdownRE</title>
+</head>
+<body>
+  <div id="app">
+    <div id="toolbar" role="toolbar" aria-label="窗口布局和主题">
+      <div id="toolbar-left">
+      <div class="toolbar-group file-actions">
+        <button type="button" id="open-file" class="icon-button" title="打开文件（⌘O）" aria-label="打开文件" data-icon="folder-open"></button>
+      </div>
+      <div class="toolbar-group" aria-label="页面模式">
+        <button type="button" class="icon-button" data-layout="preview" title="纯预览" aria-label="纯预览" aria-pressed="false" data-icon="eye"></button>
+        <button type="button" class="icon-button" data-layout="horizontal" title="左右分栏：左编辑，右预览" aria-label="左右分栏：左编辑，右预览" aria-pressed="false" data-icon="columns-2"></button>
+        <button type="button" class="icon-button" data-layout="vertical" title="上下分栏：上预览，下编辑" aria-label="上下分栏：上预览，下编辑" aria-pressed="false" data-icon="rows-2"></button>
+        <button type="button" class="icon-button" data-layout="editor" title="纯编辑" aria-label="纯编辑" aria-pressed="false" data-icon="pencil"></button>
+      </div>
+      <div id="edit-actions" class="toolbar-group edit-actions" aria-label="编辑操作" hidden>
+        <span class="toolbar-separator" aria-hidden="true"></span>
+        <button type="button" id="save-file" class="icon-button" title="保存（⌘S）" aria-label="保存" data-icon="save"></button>
+        <button type="button" id="undo" class="icon-button" title="撤销（⌘Z）" aria-label="撤销" data-icon="undo-2"></button>
+        <button type="button" id="redo" class="icon-button" title="重做（⇧⌘Z 或 ⌘Y）" aria-label="重做" data-icon="redo-2"></button>
+      </div>
+      <div id="markdown-actions" class="toolbar-group markdown-actions" aria-label="Markdown 格式" hidden>
+        <span class="toolbar-separator" aria-hidden="true"></span>
+        <button type="button" class="icon-button markdown-button" data-markdown="h1" title="一级标题" aria-label="一级标题" data-icon="heading-1"></button>
+        <button type="button" class="icon-button markdown-button" data-markdown="h2" title="二级标题" aria-label="二级标题" data-icon="heading-2"></button>
+        <button type="button" class="icon-button markdown-button" data-markdown="h3" title="三级标题" aria-label="三级标题" data-icon="heading-3"></button>
+        <button type="button" class="icon-button markdown-button" data-markdown="bold" title="粗体" aria-label="粗体" data-icon="bold"></button>
+        <button type="button" class="icon-button markdown-button" data-markdown="italic" title="斜体" aria-label="斜体" data-icon="italic"></button>
+        <button type="button" class="icon-button markdown-button" data-markdown="strike" title="删除线" aria-label="删除线" data-icon="strikethrough"></button>
+        <button type="button" class="icon-button markdown-button" data-markdown="code" title="行内代码" aria-label="行内代码" data-icon="code"></button>
+        <button type="button" class="icon-button" data-markdown="link" title="链接" aria-label="链接" data-icon="link"></button>
+        <button type="button" class="icon-button" data-markdown="image" title="图片" aria-label="图片" data-icon="image"></button>
+        <button type="button" class="icon-button" data-markdown="quote" title="引用" aria-label="引用" data-icon="quote"></button>
+        <button type="button" class="icon-button" data-markdown="bullet" title="无序列表" aria-label="无序列表" data-icon="list"></button>
+        <button type="button" class="icon-button markdown-button" data-markdown="ordered" title="有序列表" aria-label="有序列表" data-icon="list-ordered"></button>
+        <button type="button" class="icon-button" data-markdown="task" title="任务列表" aria-label="任务列表" data-icon="list-todo"></button>
+        <button type="button" class="icon-button" data-markdown="codeblock" title="代码块" aria-label="代码块" data-icon="square-code"></button>
+        <button type="button" class="icon-button" data-markdown="table" title="表格" aria-label="表格" data-icon="table"></button>
+        <button type="button" class="icon-button" data-markdown="rule" title="分隔线" aria-label="分隔线" data-icon="minus"></button>
+      </div>
+      <span class="spacer"></span>
+      </div>
+      <div class="toolbar-group theme-picker">
+        <button type="button" id="theme" class="icon-button" title="主题设置" aria-label="主题设置" aria-haspopup="menu" aria-expanded="false" aria-controls="theme-menu"><span class="theme-sun icon-slot" data-icon="sun"></span><span class="theme-moon icon-slot" data-icon="moon"></span></button>
+        <div id="theme-menu" role="menu" aria-label="主题" hidden>
+          <button type="button" role="menuitemradio" data-theme-choice="dark-background" aria-checked="false"><span class="theme-check" aria-hidden="true">✓</span>Dark Background</button>
+          <button type="button" role="menuitemradio" data-theme-choice="light-background" aria-checked="false"><span class="theme-check" aria-hidden="true">✓</span>Light Background</button>
+          <button type="button" role="menuitemradio" data-theme-choice="smoooooth" aria-checked="false"><span class="theme-check" aria-hidden="true">✓</span>Smoooooth</button>
+          <button type="button" role="menuitemradio" data-theme-choice="solarized-dark" aria-checked="false"><span class="theme-check" aria-hidden="true">✓</span>Solarized Dark</button>
+          <button type="button" role="menuitemradio" data-theme-choice="solarized-light" aria-checked="false"><span class="theme-check" aria-hidden="true">✓</span>Solarized Light</button>
+          <button type="button" role="menuitemradio" data-theme-choice="tango-dark" aria-checked="false"><span class="theme-check" aria-hidden="true">✓</span>Tango Dark</button>
+          <button type="button" role="menuitemradio" data-theme-choice="tango-light" aria-checked="false"><span class="theme-check" aria-hidden="true">✓</span>Tango Light</button>
+        </div>
+      </div>
+    </div>
+    <div id="workspace">
+      <div id="editor"></div>
+      <div id="splitter"></div>
+      <main id="preview"></main>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
