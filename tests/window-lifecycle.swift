@@ -14,6 +14,16 @@ precondition(aboutItem?.title == tr("about") && aboutItem?.action == #selector(A
 precondition(appMenu?.items.contains(where: { $0.title == tr("defaultApp") && $0.action == #selector(AppDelegate.setDefaultMarkdownApplication(_:)) && $0.target === testDelegate }) == true, "Default Markdown application menu is missing")
 testDelegate.showAbout(nil)
 precondition(testApp.windows.contains(where: { $0 is NSPanel }), "About panel did not open")
+precondition(testDelegate.aboutWindow?.developerLogo.image != nil, "Developer logo is missing from About panel")
+let aboutVersion = testDelegate.aboutWindow?.versionLabel.stringValue ?? ""
+precondition(aboutVersion.hasPrefix("Version ") && !aboutVersion.contains("("), "About panel must not show the build number")
+if let destination = ProcessInfo.processInfo.environment["MARKDOWNRE_ABOUT_SCREENSHOT"], let content = testDelegate.aboutWindow?.window.contentView {
+    content.layoutSubtreeIfNeeded()
+    if let bitmap = content.bitmapImageRepForCachingDisplay(in: content.bounds) {
+        content.cacheDisplay(in: content.bounds, to: bitmap)
+        if let data = bitmap.representation(using: .png, properties: [:]) { try data.write(to: URL(fileURLWithPath: destination)) }
+    }
+}
 testApp.windows.filter { $0 is NSPanel }.forEach { $0.close() }
 print("About menu and native panel: opened successfully")
 let helpMenu = testApp.mainMenu?.items.last?.submenu

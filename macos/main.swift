@@ -505,6 +505,64 @@ final class MarkdownHelpWindow: NSObject, WKNavigationDelegate {
     func show() { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
 }
 
+// A compact native panel keeps the app and developer marks visually distinct.
+final class AboutWindow {
+    let window: NSPanel
+    let versionLabel: NSTextField
+    let detailLabel: NSTextField
+    let developerLogo: NSImageView
+
+    init() {
+        window = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 380, height: 410), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.title = tr("about")
+        window.center()
+        let appIcon = NSImageView()
+        let appIconPaths = [Bundle.main.resourceURL?.appendingPathComponent("MarkdownRE.icns"), URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("web-dist/MarkdownRE.png")].compactMap { $0 }
+        appIcon.image = appIconPaths.lazy.compactMap { NSImage(contentsOf: $0) }.first ?? NSApplication.shared.applicationIconImage
+        appIcon.imageScaling = .scaleProportionallyUpOrDown
+        let title = NSTextField(labelWithString: "MarkdownRE")
+        title.font = NSFont.systemFont(ofSize: 21, weight: .semibold)
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
+        versionLabel = NSTextField(labelWithString: "Version \(appVersion)")
+        versionLabel.identifier = NSUserInterfaceItemIdentifier("about-version")
+        versionLabel.textColor = .secondaryLabelColor
+        detailLabel = NSTextField(wrappingLabelWithString: tr("aboutDetail"))
+        detailLabel.alignment = .center
+        detailLabel.font = NSFont.systemFont(ofSize: 12)
+        detailLabel.textColor = .secondaryLabelColor
+        developerLogo = NSImageView()
+        developerLogo.identifier = NSUserInterfaceItemIdentifier("about-developer-logo")
+        developerLogo.imageScaling = .scaleProportionallyUpOrDown
+        let paths = [Bundle.main.resourceURL?.appendingPathComponent("web/RayStudioLabs-mark.svg"), URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("web-dist/RayStudioLabs-mark.svg")].compactMap { $0 }
+        developerLogo.image = paths.lazy.compactMap { NSImage(contentsOf: $0) }.first
+        let copyright = NSTextField(labelWithString: "© 2026 RayStudioLabs")
+        copyright.font = NSFont.systemFont(ofSize: 11)
+        copyright.textColor = .secondaryLabelColor
+        let stack = NSStackView(views: [appIcon, title, versionLabel, detailLabel, developerLogo, copyright])
+        stack.orientation = .vertical
+        stack.alignment = .centerX
+        stack.spacing = 8
+        stack.setCustomSpacing(14, after: appIcon)
+        stack.setCustomSpacing(20, after: versionLabel)
+        stack.setCustomSpacing(24, after: detailLabel)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        window.contentView?.addSubview(stack)
+        appIcon.translatesAutoresizingMaskIntoConstraints = false
+        detailLabel.translatesAutoresizingMaskIntoConstraints = false
+        developerLogo.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: window.contentView!.centerYAnchor),
+            appIcon.widthAnchor.constraint(equalToConstant: 80), appIcon.heightAnchor.constraint(equalToConstant: 80),
+            detailLabel.widthAnchor.constraint(equalToConstant: 320),
+            developerLogo.widthAnchor.constraint(equalToConstant: 32), developerLogo.heightAnchor.constraint(equalToConstant: 32)
+        ])
+    }
+    func show() { updateLanguage(); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
+    func updateLanguage() { window.title = tr("about"); detailLabel.stringValue = tr("aboutDetail") }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // AppKit can add these system commands after the menu is created. Filter
     // them when the Edit menu opens, including when the system rebuilds it.
@@ -525,6 +583,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var windows: [DocumentWindow] = []
     var recentMenu = NSMenu(title:tr("recent"))
     var markdownHelp: MarkdownHelpWindow?
+    var aboutWindow: AboutWindow?
     var recents: [String] { preferences.stringArray(forKey:"recent") ?? [] }
     func applicationWillFinishLaunching(_ notification: Notification) {
         if preferences.string(forKey: "theme") == "pastel-dark" {
@@ -592,14 +651,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
     @objc func showAbout(_ sender: Any?) {
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .center
-        let credits = NSAttributedString(
-            string: tr("aboutDetail"),
-            attributes: [.font: NSFont.systemFont(ofSize: 12), .foregroundColor: NSColor.secondaryLabelColor, .paragraphStyle: paragraph]
-        )
-        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
-        NSApp.activate(ignoringOtherApps: true)
+        if aboutWindow == nil { aboutWindow = AboutWindow() }
+        aboutWindow?.show()
     }
     @objc func showMarkdownHelp(_ sender: Any?) {
         if let help = markdownHelp { help.show(); return }
@@ -619,6 +672,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupMenus()
         for document in windows { document.updateTitle(); document.send(["type":"language", "language":resolvedLanguage()]) }
         markdownHelp?.applyLanguage()
+        aboutWindow?.updateLanguage()
     }
     func setupMenus() {
         let bar=NSMenu(); NSApp.mainMenu=bar

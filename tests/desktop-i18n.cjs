@@ -21,13 +21,22 @@ const dictionaries = require('../web/public/locales.json');
     await app.evaluate(({Menu}) => Menu.getApplicationMenu().getMenuItemById('syntax').click());
     const help = await helpWindow;
     await help.waitForFunction(() => typeof window.setHelpLanguage === 'function');
+    const aboutWindow = app.waitForEvent('window');
+    await app.evaluate(({Menu}) => Menu.getApplicationMenu().getMenuItemById('about').click());
+    const about = await aboutWindow;
+    await about.waitForFunction(() => typeof window.setAboutLanguage === 'function' && document.querySelector('.developer-logo')?.naturalWidth > 0);
+    assert.equal(await about.locator('#version').textContent(), `Version ${require('../package.json').version}`);
+    assert.equal(await about.locator('.copyright').textContent(), '© 2026 RayStudioLabs');
+    if (process.env.MARKDOWNRE_ABOUT_SCREENSHOT) await about.screenshot({path:process.env.MARKDOWNRE_ABOUT_SCREENSHOT});
     for (const [locale, dict] of Object.entries(dictionaries)) {
       await app.evaluate(({Menu}, id) => Menu.getApplicationMenu().getMenuItemById(`language-${id}`).click(), locale);
       await page.waitForFunction(expected => document.documentElement.lang === expected, locale);
       await help.waitForFunction(expected => document.documentElement.lang === expected, locale);
       await second.waitForFunction(expected => document.documentElement.lang === expected, locale);
+      await about.waitForFunction(expected => document.documentElement.lang === expected, locale);
       assert.equal(await page.locator('#open-file').getAttribute('aria-label'), dict.openFile, locale);
       assert.equal(await help.locator('h1').textContent(), dict.syntax, locale);
+      assert.equal(await about.locator('#detail').textContent(), dict.aboutDetail, locale);
       assert.equal(await second.locator('#open-file').getAttribute('aria-label'), dict.openFile, locale);
       assert.equal(await app.evaluate(({Menu}) => Menu.getApplicationMenu().getMenuItemById('file').label), dict.file, locale);
     }

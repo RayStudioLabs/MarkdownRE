@@ -12,6 +12,10 @@ MarkdownRE 是 RayStudioLabs 开发的免费开源 Markdown 阅读和编辑器�
 
 应用菜单、工具栏、帮助和常见提示使用共享翻译。Monaco 编辑器自身的部分内置界面仍显示英语，原生系统对话框的系统按钮由操作系统控制。初版译文含机器翻译，欢迎母语使用者提交校对。
 
+## 版本号
+
+使用 `主版本.次版本.修订号`（语义化版本）。兼容的错误修复递增修订号，兼容的新功能递增次版本；不兼容的变更递增主版本。`0.x` 阶段尚未稳定，可能发生不兼容调整；此类调整递增次版本并在发行说明中标明。各平台保持相同版本号，关于窗口仅显示该版本号。
+
 ## 本地构建
 
 需要 macOS、Xcode 命令行工具、Node.js 和 npm：
@@ -42,7 +46,7 @@ open build/MarkdwonRE.app
 验证开发包与安装镜像的标识、图标及签名：
 
 ```sh
-./tests/macos-packaging.sh build/MarkdownRE-0.1.0-arm64.dmg
+./tests/macos-packaging.sh build/MarkdownRE-0.2.0-arm64.dmg
 ```
 
 该检查只挂载镜像到临时目录，不安装或启动应用。

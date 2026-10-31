@@ -104,14 +104,29 @@ function setLanguage(value) {
   if (value !== 'system' && !languageNames[value]) return;
   preferences.language = value; storePreferences(); makeMenu();
   for (const doc of documents.values()) { updateTitle(doc); send(doc, {type:'language',language:resolveLanguage(value)}); }
-  for (const win of BrowserWindow.getAllWindows()) if (win.__markdownHelp) { win.setTitle(t('syntax')); void win.webContents.executeJavaScript(`window.__markdownREInitialLanguage=${JSON.stringify(resolveLanguage(value))}; window.setHelpLanguage?.(window.__markdownREInitialLanguage)`); }
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.__markdownHelp) { win.setTitle(t('syntax')); void win.webContents.executeJavaScript(`window.__markdownREInitialLanguage=${JSON.stringify(resolveLanguage(value))}; window.setHelpLanguage?.(window.__markdownREInitialLanguage)`); }
+    if (win.__markdownAbout) { win.setTitle(t('about')); void win.webContents.executeJavaScript(`window.__markdownREInitialLanguage=${JSON.stringify(resolveLanguage(value))}; window.setAboutLanguage?.(window.__markdownREInitialLanguage)`); }
+  }
+}
+let aboutWindow;
+function showAbout() {
+  if (aboutWindow && !aboutWindow.isDestroyed()) { aboutWindow.focus(); return; }
+  const win = new BrowserWindow({width:380,height:440,resizable:false,show:false,title:t('about'),icon:path.join(__dirname,'../macos/assets/MarkdownRE.png'),webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true}});
+  aboutWindow=win; win.__markdownAbout=true;
+  win.on('closed',()=>{if(aboutWindow===win)aboutWindow=null;});
+  win.once('ready-to-show',()=>win.show());
+  win.webContents.setWindowOpenHandler(()=>({action:'deny'}));
+  win.webContents.on('will-navigate',event=>event.preventDefault());
+  const query = new URLSearchParams({lang:resolveLanguage(preferences.language),version:app.getVersion(),theme:preferences.theme});
+  void win.loadURL(`markdownre://ui/about.html?${query}`);
 }
 function makeMenu(){Menu.setApplicationMenu(Menu.buildFromTemplate([
  ...(process.platform==='darwin'?[{role:'appMenu'}]:[]),
  {id:'file',label:t('file'),submenu:[{id:'newDocument',label:t('new'),accelerator:'CmdOrCtrl+N',click:()=>openDocument()},{label:t('open'),accelerator:'CmdOrCtrl+O',click:chooseOpen},{label:t('recent'),submenu:[{role:'recentDocuments',submenu:[{role:'clearRecentDocuments',label:t('clearRecent')}]}]},{type:'separator'},{label:t('save'),accelerator:'CmdOrCtrl+S',click:()=>{const d=focused();if(d)void save(d);}},{id:'saveAs',label:t('saveAs'),accelerator:'CmdOrCtrl+Shift+S',click:()=>{const d=focused();if(d)void save(d,true);}},{id:'exportPdf',label:t('exportPdf'),click:()=>{const d=focused();if(d)void choosePDFExport(d);}},{type:'separator'},{role:'close',label:t('close')},{role:'quit',label:t('quit')}]},
  {id:'edit',label:t('edit'),submenu:[{label:t('undo'),accelerator:'CmdOrCtrl+Z',click:()=>{const d=focused();if(d)send(d,{type:'edit',command:'undo'});}},{label:t('redo'),accelerator:'CmdOrCtrl+Shift+Z',click:()=>{const d=focused();if(d)send(d,{type:'edit',command:'redo'});}},{type:'separator'},{role:'cut',label:t('cut')},{role:'copy',label:t('copy')},{role:'paste',label:t('paste')},{role:'selectAll',label:t('selectAll')}]},
  {id:'view',label:t('view'),submenu:[...['preview','horizontal','vertical','editor'].map(layout=>({label:t(layout),click:()=>{const d=focused();if(d)send(d,{type:'layout',layout});}})),{type:'separator'},{label:t('language'),submenu:[{id:'language-system',type:'radio',label:t('systemLanguage'),checked:preferences.language==='system',click:()=>setLanguage('system')},{type:'separator'},...Object.entries(languageNames).map(([id,name])=>({id:`language-${id}`,type:'radio',label:name,checked:preferences.language===id,click:()=>setLanguage(id)}))]},{type:'separator'},{role:'togglefullscreen',label:t('fullscreen')}]},
- {id:'help',label:t('help'),submenu:[{id:'syntax',label:t('syntax'),click:()=>{const win=new BrowserWindow({title:t('syntax'),width:850,height:700,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});win.__markdownHelp=true;win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',e=>e.preventDefault());void win.loadURL(`markdownre://ui/help.html?lang=${encodeURIComponent(resolveLanguage(preferences.language))}`);}},{label:t('about'),click:()=>dialog.showMessageBox({message:`MarkdownRE ${app.getVersion()}`,detail:t('aboutDetail')})}]},
+ {id:'help',label:t('help'),submenu:[{id:'syntax',label:t('syntax'),click:()=>{const win=new BrowserWindow({title:t('syntax'),width:850,height:700,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});win.__markdownHelp=true;win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',e=>e.preventDefault());void win.loadURL(`markdownre://ui/help.html?lang=${encodeURIComponent(resolveLanguage(preferences.language))}`);}},{id:'about',label:t('about'),click:showAbout}]},
 ]));}
 async function start(){
   await fs.mkdir(app.getPath('userData'),{recursive:true});try{const p=JSON.parse(await fs.readFile(path.join(app.getPath('userData'),'preferences.json'),'utf8'));if(themes.has(p.theme))preferences.theme=p.theme;if(p.language==='system'||languageNames[p.language])preferences.language=p.language;for(const k of ['horizontal','vertical'])if(Number.isFinite(p[k])&&p[k]>=0.15&&p[k]<=0.85)preferences[k]=p[k];}catch{}
@@ -125,7 +140,7 @@ async function start(){
       case 'content':if(typeof message.text==='string'){const request=doc.requests.get(message.action);doc.requests.delete(message.action);request?.resolve(message.text);}break;
       case 'openDocument':void chooseOpen();break;
       case 'saveDocument':void save(doc);break;
-      case 'theme':if(themes.has(message.theme)){preferences.theme=message.theme;storePreferences();for(const d of documents.values())send(d,{type:'theme',theme:message.theme});}break;
+      case 'theme':if(themes.has(message.theme)){preferences.theme=message.theme;storePreferences();for(const d of documents.values())send(d,{type:'theme',theme:message.theme});if(aboutWindow&&!aboutWindow.isDestroyed())void aboutWindow.webContents.executeJavaScript(`window.setAboutTheme?.(${JSON.stringify(message.theme)})`);}break;
       case 'ratios':for(const key of ['horizontal','vertical'])if(Number.isFinite(message[key])&&message[key]>=0.15&&message[key]<=0.85)preferences[key]=message[key];storePreferences();break;
       case 'openLink':try{const url=new URL(message.href);if(['https:','http:','mailto:'].includes(url.protocol))void shell.openExternal(url.href).catch(e=>errorBox(doc,e));}catch{}break;
     }
