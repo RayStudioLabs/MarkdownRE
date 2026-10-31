@@ -30,11 +30,11 @@ export function getActiveMarkdown(editor) {
   return activeFormats(model.getValue(), model.getOffsetAt(selection.getStartPosition()), model.getOffsetAt(selection.getEndPosition()));
 }
 
-export function insertMarkdown(editor, kind) {
+export function insertMarkdown(editor, kind, labels = {}) {
   const model = editor.getModel(), selection = editor.getSelection();
   if (!model || !selection) return;
   const start = model.getOffsetAt(selection.getStartPosition()), end = model.getOffsetAt(selection.getEndPosition());
-  const edit = formatMarkdown(model.getValue(), start, end, kind);
+  const edit = formatMarkdown(model.getValue(), start, end, kind, labels);
   if (!edit) { editor.focus(); return; }
   const from = model.getPositionAt(edit.from), to = model.getPositionAt(edit.to);
   editor.pushUndoStop();

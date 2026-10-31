@@ -16,7 +16,7 @@ const {_electron}=require('playwright');
   try {
     const page=await app.firstWindow();await page.waitForSelector('#preview table');
     const pdf=path.join(dir,'tables.pdf');
-    await app.evaluate(({dialog,Menu,BrowserWindow},out)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:out});BrowserWindow.getAllWindows()[0].focus();Menu.getApplicationMenu().items.find(i=>i.label==='文件').submenu.items.find(i=>i.label==='导出为 PDF…').click();},pdf);
+    await app.evaluate(({dialog,Menu,BrowserWindow},out)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:out});BrowserWindow.getAllWindows()[0].focus();Menu.getApplicationMenu().getMenuItemById('file').submenu.getMenuItemById('exportPdf').click();},pdf);
     let data;for(let i=0;i<150;i++){try{data=await fs.readFile(pdf);break;}catch{}await new Promise(r=>setTimeout(r,100));}
     assert(data&&data.subarray(0,5).toString()==='%PDF-','PDF was not created');
     if(process.env.MARKDOWNRE_PDF_COPY)await fs.copyFile(pdf,process.env.MARKDOWNRE_PDF_COPY);

@@ -9,7 +9,7 @@
     "dist:win": "npm run build && electron-builder --win --x64 --publish never",
     "dist:linux": "npm run build && electron-builder --linux --x64 --publish never",
     "dist:portable": "npm run build && electron-builder --win zip --linux tar.gz --x64 --publish never -c.win.signExecutable=false",
-    "test:desktop": "npm run build && node tests/desktop-smoke.cjs && node tests/desktop-pdf-tables.cjs"
+    "test:desktop": "npm run build && node tests/desktop-smoke.cjs && node tests/desktop-pdf-tables.cjs && node tests/desktop-i18n.cjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

@@ -1,8 +1,12 @@
+import {loadTranslations, resolveLanguage, translate} from './i18n.js';
 import {syncPreviewScroll} from './scroll-sync.js';
 import {themes, normalizeTheme} from './themes.js';
 import {renderIcons} from './icons.js';
 import './style.css';
 
+await loadTranslations();
+let language = resolveLanguage(window.__markdownREInitialLanguage, navigator.languages);
+const t = key => translate(language, key);
 renderIcons();
 const $ = (s) => document.querySelector(s);
 const bridge = (type, data = {}) => {
@@ -10,9 +14,20 @@ const bridge = (type, data = {}) => {
   if (window.desktopBridge) window.desktopBridge.postMessage(message);
   else window.webkit?.messageHandlers?.app?.postMessage(message);
 };
-if (window.desktopBridge?.platform !== 'darwin' && window.desktopBridge) {
-  for (const button of document.querySelectorAll('[title]')) button.title = button.title.replaceAll('⌘', 'Ctrl+').replaceAll('⇧', 'Shift+');
+function applyLanguage(value) {
+  language = resolveLanguage(value, navigator.languages);
+  document.documentElement.lang = language;
+  for (const element of document.querySelectorAll('[data-i18n]')) {
+    const text = t(element.dataset.i18n);
+    if (element.hasAttribute('aria-label')) element.setAttribute('aria-label', text);
+    if (element.hasAttribute('title')) element.title = text;
+  }
+  const mac = !window.desktopBridge || window.desktopBridge.platform === 'darwin';
+  for (const [id, shortcut] of Object.entries(mac ? {'open-file':'⌘O','save-file':'⌘S',undo:'⌘Z',redo:'⇧⌘Z / ⌘Y'} : {'open-file':'Ctrl+O','save-file':'Ctrl+S',undo:'Ctrl+Z',redo:'Ctrl+Shift+Z / Ctrl+Y'})) {
+    const button = document.getElementById(id); button.title += ` (${shortcut})`;
+  }
 }
+applyLanguage(language);
 const initialTheme = normalizeTheme(window.__markdownREInitialTheme);
 const state = {layout:'preview', theme:initialTheme, horizontal:0.5, vertical:0.5, base:'', text:''};
 let editor = null, editorModule = null, editorPromise = null;
@@ -77,7 +92,7 @@ function ensureEditor() {
       return editor;
     }).catch(error => {
       editorPromise = null;
-      $('#editor').textContent = `编辑器加载失败：${error.message}`;
+      $('#editor').textContent = `${t('loadEditorFailed')}: ${error.message}`;
       throw error;
     });
   }
@@ -102,7 +117,7 @@ async function render(text) {
     schedulePreviewSync();
   } catch (error) {
     rendererPromise = null;
-    if (version === renderVersion) preview.textContent = `预览失败：${error.message}`;
+    if (version === renderVersion) preview.textContent = `${t('renderFailed')}: ${error.message}`;
   }
 }
 
@@ -204,7 +219,7 @@ function applyTheme(value) {
 for (const button of document.querySelectorAll('[data-layout]')) button.onclick=()=>{applyLayout(button.dataset.layout);bridge('layout',{layout:state.layout});};
 for (const button of document.querySelectorAll('[data-markdown]')) button.onclick=()=>{
   if (state.layout === 'preview') return;
-  ensureEditor().then(instance => { if (state.layout !== 'preview') editorModule.insertMarkdown(instance, button.dataset.markdown); }).catch(() => {});
+  ensureEditor().then(instance => { if (state.layout !== 'preview') editorModule.insertMarkdown(instance, button.dataset.markdown, Object.fromEntries(['tableHeader','tableContent','imageDescription','imageUrl','linkText'].map(key => [key, t(key)])));  }).catch(() => {});
 };
 const themeButton = $('#theme');
 const themeMenu = $('#theme-menu');
@@ -233,7 +248,8 @@ window.receiveNative = (message) => {
   }
   if(message.type==='edit' && editor && ['undo','redo'].includes(message.command)) {editor.focus();editor.trigger('native-menu',message.command,null);updateHistoryAfterChange();}
   if(message.type==='documentBase') {state.base=message.base || ''; render(state.text);}
-  if(message.type==='preferences') {state.horizontal=message.horizontal || 0.5;state.vertical=message.vertical || 0.5;applyTheme(message.theme);applyLayout(state.layout);}
+  if(message.type==='preferences') {applyLanguage(message.language);state.horizontal=message.horizontal || 0.5;state.vertical=message.vertical || 0.5;applyTheme(message.theme);applyLayout(state.layout);}
+  if(message.type==='language') applyLanguage(message.language);
   if(message.type==='theme') applyTheme(message.theme);
   if(message.type==='layout') applyLayout(message.layout);
   if(message.type==='requestContent') bridge('content',{text:state.text,action:message.action});

@@ -4,6 +4,29 @@ import UniformTypeIdentifiers
 
 let preferences = UserDefaults.standard
 
+let languageNames: [(String, String)] = [("zh-Hans","简体中文"),("zh-Hant","繁體中文"),("en","English"),("de","Deutsch"),("fr","Français"),("es","Español"),("ja","日本語"),("ko","한국어"),("pt-BR","Português (Brasil)"),("it","Italiano")]
+let translations: [String: [String: String]] = {
+    let paths = [Bundle.main.resourceURL?.appendingPathComponent("web/locales.json"), URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("web-dist/locales.json")].compactMap { $0 }
+    for path in paths {
+        if let data = try? Data(contentsOf: path), let value = try? JSONDecoder().decode([String: [String: String]].self, from: data) { return value }
+    }
+    return [:]
+}()
+func resolvedLanguage(_ preference: String? = nil) -> String {
+    let value = preference ?? preferences.string(forKey: "language") ?? "system"
+    if languageNames.contains(where: { $0.0 == value }) { return value }
+    for raw in Locale.preferredLanguages {
+        let tag = raw.replacingOccurrences(of: "_", with: "-").lowercased()
+        let parts = tag.split(separator: "-").map(String.init)
+        guard let base = parts.first else { continue }
+        if base == "zh" { return parts.contains("hant") ? "zh-Hant" : parts.contains("hans") ? "zh-Hans" : parts.contains(where: { ["tw","hk","mo"].contains($0) }) ? "zh-Hant" : "zh-Hans" }
+        if base == "pt" { return "pt-BR" }
+        if languageNames.contains(where: { $0.0 == base }) { return base }
+    }
+    return "en"
+}
+func tr(_ key: String) -> String { translations[resolvedLanguage()]?[key] ?? translations["en"]?[key] ?? key }
+
 // Backgrounds match the iTerm2 color presets represented in the Web UI.
 let nativeThemes: [String: (dark: Bool, rgb: (CGFloat, CGFloat, CGFloat))] = [
     "dark-background": (true, (0, 0, 0)),
@@ -103,7 +126,7 @@ final class PDFExporter: NSObject, WKNavigationDelegate {
             case .success(let value):
                 guard let metrics = value as? [String: Any], let height = metrics["height"] as? Double, height > 0,
                       let spans = metrics["spans"] as? [[Double]], let tables = metrics["tables"] as? [[Double]],
-                      let headings = metrics["headings"] as? [[Double]] else { self.fail("无法测量预览页面。"); return }
+                      let headings = metrics["headings"] as? [[Double]] else { self.fail(tr("previewMeasureFailed")); return }
                 let config = WKPDFConfiguration()
                 config.rect = CGRect(x: 0, y: 0, width: self.pageWidth - self.margin * 2, height: height)
                 self.web.createPDF(configuration: config) { result in
@@ -118,7 +141,7 @@ final class PDFExporter: NSObject, WKNavigationDelegate {
     }
     private func fail(_ message: String) { completion(.failure(NSError(domain: "MarkdownRE.PDF", code: 1, userInfo: [NSLocalizedDescriptionKey: message]))) }
     private func writePages(data: Data, height: CGFloat, spans: [[Double]], tables: [[Double]], headings: [[Double]]) throws {
-        guard let provider = CGDataProvider(data: data as CFData), let source = CGPDFDocument(provider), let page = source.page(at: 1) else { throw NSError(domain: "MarkdownRE.PDF", code: 2, userInfo: [NSLocalizedDescriptionKey: "无法读取预览 PDF。"]) }
+        guard let provider = CGDataProvider(data: data as CFData), let source = CGPDFDocument(provider), let page = source.page(at: 1) else { throw NSError(domain: "MarkdownRE.PDF", code: 2, userInfo: [NSLocalizedDescriptionKey: tr("pdfReadFailed")]) }
         let output = NSMutableData()
         guard let consumer = CGDataConsumer(data: output as CFMutableData) else { throw NSError(domain: "MarkdownRE.PDF", code: 3) }
         var media = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
@@ -191,7 +214,7 @@ final class SaveFormatChooser: NSObject {
     init(panel: NSSavePanel) {
         self.panel = panel
         super.init()
-        let label = NSTextField(labelWithString: "文件格式：")
+        let label = NSTextField(labelWithString: tr("fileFormat"))
         label.frame = NSRect(x: 0, y: 6, width: 76, height: 20)
         popup.addItems(withTitles: ["Markdown (.md)", "PDF (.pdf)"])
         popup.target = self; popup.action = #selector(changed(_:))
@@ -233,10 +256,10 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
             if data.starts(with: [0xef,0xbb,0xbf]), let value = String(data: data.dropFirst(3), encoding: .utf8) { hasUTF8BOM = true; raw = value }
             else if let utf8 = String(data:data, encoding:.utf8) { raw = utf8 }
             else if (data.starts(with: [0xff, 0xfe]) || data.starts(with: [0xfe, 0xff])), let utf16 = String(data:data, encoding:.utf16) { encoding = .utf16; raw = utf16 }
-            else { throw NSError(domain:"MarkdownRE", code:2, userInfo:[NSLocalizedDescriptionKey:"无法识别文件编码。为避免损坏，文件没有被打开。 "]) }
+            else { throw NSError(domain:"MarkdownRE", code:2, userInfo:[NSLocalizedDescriptionKey:tr("encodingError")]) }
             let withoutCRLF = raw.replacingOccurrences(of:"\r\n", with:"")
-            if raw.contains("\r\n") && (withoutCRLF.contains("\n") || withoutCRLF.contains("\r")) { throw NSError(domain:"MarkdownRE",code:3,userInfo:[NSLocalizedDescriptionKey:"文件包含混合换行符，暂无法安全编辑。 "]) }
-            if raw.contains("\r\n") { newline = "\r\n" } else if raw.contains("\r") && !raw.contains("\n") { newline = "\r" } else if raw.contains("\r") { throw NSError(domain:"MarkdownRE",code:3,userInfo:[NSLocalizedDescriptionKey:"文件包含混合换行符，暂无法安全编辑。 "]) }
+            if raw.contains("\r\n") && (withoutCRLF.contains("\n") || withoutCRLF.contains("\r")) { throw NSError(domain:"MarkdownRE",code:3,userInfo:[NSLocalizedDescriptionKey:tr("mixedNewlines")]) }
+            if raw.contains("\r\n") { newline = "\r\n" } else if raw.contains("\r") && !raw.contains("\n") { newline = "\r" } else if raw.contains("\r") { throw NSError(domain:"MarkdownRE",code:3,userInfo:[NSLocalizedDescriptionKey:tr("mixedNewlines")]) }
             text = raw.replacingOccurrences(of:"\r\n",with:"\n").replacingOccurrences(of:"\r",with:"\n")
             savedText = text
             modifiedAt = try? url.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate
@@ -250,6 +273,7 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
         let rgb = initialTheme.rgb
         let initialScript = """
             window.__markdownREInitialTheme = '\(themeID)';
+            window.__markdownREInitialLanguage = '\(resolvedLanguage())';
             document.documentElement.dataset.theme = '\(initialTheme.dark ? "dark" : "light")';
             document.documentElement.style.setProperty('--background', 'rgb(\(Int(rgb.0)), \(Int(rgb.1)), \(Int(rgb.2)))');
             """
@@ -284,7 +308,7 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
         DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
             guard let self = self, !self.loadingView.isHidden, self.showRequested else { return }
             self.reveal()
-            self.showError("编辑器加载失败，请关闭窗口后重试。")
+            self.showError(tr("editorFailed"))
         }
     }
     func applyTheme(_ value: String) {
@@ -327,7 +351,7 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
             }
         }
     }
-    func updateTitle() { window.title = url?.lastPathComponent ?? "未命名.md"; window.isDocumentEdited = text != savedText; window.representedURL = url }
+    func updateTitle() { window.title = url?.lastPathComponent ?? (tr("untitled") + ".md"); window.isDocumentEdited = text != savedText; window.representedURL = url }
     func send(_ message: [String:Any], completion: ((Bool) -> Void)? = nil) {
         guard ready, let data = try? JSONSerialization.data(withJSONObject:message), let json = String(data:data,encoding:.utf8) else { completion?(false); return }
         web.evaluateJavaScript("window.receiveNative(\(json))") { _, error in
@@ -336,13 +360,13 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
         }
     }
     func loadIntoWeb() {
-        let settings: [String: Any] = ["type":"preferences", "horizontal":preferences.object(forKey:"horizontal") as? Double ?? 0.5,"vertical":preferences.object(forKey:"vertical") as? Double ?? 0.5,"theme":preferences.string(forKey:"theme") ?? "solarized-light"]
+        let settings: [String: Any] = ["type":"preferences", "language":resolvedLanguage(), "horizontal":preferences.object(forKey:"horizontal") as? Double ?? 0.5,"vertical":preferences.object(forKey:"vertical") as? Double ?? 0.5,"theme":preferences.string(forKey:"theme") ?? "solarized-light"]
         send(settings) { [weak self] success in
             guard let self = self else { return }
-            guard success else { self.reveal(); self.showError("无法加载编辑器设置。"); return }
+            guard success else { self.reveal(); self.showError(tr("settingsFailed")); return }
             self.send(["type":"document","text":self.text,"base":self.server.origin + "doc/\(self.id)/"]) { [weak self] success in
                 guard let self = self else { return }
-                if !success { self.reveal(); self.showError("无法加载文档内容。") }
+                if !success { self.reveal(); self.showError(tr("documentFailed")) }
             }
         }
     }
@@ -376,20 +400,20 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
         if target.absoluteString.hasPrefix(server.origin) { decisionHandler(.allow) } else { decisionHandler(.cancel) }
     }
     func exportPDF(to file: URL, completion: ((Bool) -> Void)? = nil) {
-        guard ready else { showError("预览尚未加载完成，请稍后重试。"); completion?(false); return }
+        guard ready else { showError(tr("previewNotReady")); completion?(false); return }
         web.callAsyncJavaScript("return await window.preparePDFExport();", arguments: [:], in: nil, in: .page) { [weak self] result in
             guard let self = self else { completion?(false); return }
             switch result {
             case .failure(let error):
-                self.showError("无法准备 PDF：\(error.localizedDescription)")
+                self.showError("\(tr("preparePdfFailed")): \(error.localizedDescription)")
                 completion?(false)
             case .success(let value):
-                guard let html = value as? String, let base = URL(string: self.server.origin) else { self.showError("无法准备 PDF 内容。"); completion?(false); return }
+                guard let html = value as? String, let base = URL(string: self.server.origin) else { self.showError(tr("pdfContentFailed")); completion?(false); return }
                 self.pdfExporter = PDFExporter(html: html, base: base, destination: file) { [weak self] result in
                     self?.pdfExporter = nil
                     switch result {
                     case .success: completion?(true)
-                    case .failure(let error): self?.showError("PDF 导出失败：\(error.localizedDescription)"); completion?(false)
+                    case .failure(let error): self?.showError("\(tr("pdfExportFailed")): \(error.localizedDescription)"); completion?(false)
                     }
                 }
             }
@@ -397,7 +421,7 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
     }
     func choosePDFExport() {
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = (url?.deletingPathExtension().lastPathComponent ?? "未命名") + ".pdf"
+        panel.nameFieldStringValue = (url?.deletingPathExtension().lastPathComponent ?? tr("untitled")) + ".pdf"
         panel.allowedContentTypes = [.pdf]
         panel.canCreateDirectories = true
         if panel.runModal() == .OK, let file = panel.url { exportPDF(to: file) }
@@ -405,7 +429,7 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
     func save(asNew: Bool = false) -> Bool {
         var destination = url
         if destination == nil || asNew {
-            let panel = NSSavePanel(); panel.nameFieldStringValue = url?.lastPathComponent ?? "未命名.md"; panel.canCreateDirectories = true
+            let panel = NSSavePanel(); panel.nameFieldStringValue = url?.lastPathComponent ?? (tr("untitled") + ".md"); panel.canCreateDirectories = true
             let chooser = asNew ? SaveFormatChooser(panel: panel) : nil
             if !asNew { panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText] }
             let response = panel.runModal()
@@ -414,11 +438,11 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
         }
         guard let file = destination else { return false }
         if !asNew, file == url, let oldDate = modifiedAt, let current = try? file.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate, current != oldDate {
-            let alert = NSAlert(); alert.messageText = "文件已被其他程序修改"; alert.informativeText = "继续保存将覆盖外部修改。"; alert.addButton(withTitle:"取消"); alert.addButton(withTitle:"覆盖")
+            let alert = NSAlert(); alert.messageText = tr("changedExternally"); alert.informativeText = tr("confirmOverwrite"); alert.addButton(withTitle:tr("cancel")); alert.addButton(withTitle:tr("overwrite"))
             if alert.runModal() != .alertSecondButtonReturn { return false }
         }
         let output = text.replacingOccurrences(of:"\n",with:newline)
-        guard var data = output.data(using:encoding) else { showError("无法使用原文件的编码保存。"); return false }
+        guard var data = output.data(using:encoding) else { showError(tr("saveEncoding")); return false }
         if hasUTF8BOM { data.insert(contentsOf:[0xef,0xbb,0xbf],at:0) }
         do {
             try data.write(to:file,options:.atomic)
@@ -426,11 +450,11 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
             server.setFolder(file.deletingLastPathComponent(),for:id); updateTitle()
             (NSApp.delegate as? AppDelegate)?.recordRecent(file)
             return true
-        } catch { showError("保存失败：\(error.localizedDescription)"); return false }
+        } catch { showError("\(tr("saveFailed")): \(error.localizedDescription)"); return false }
     }
     func confirmClose() -> Bool {
         guard text != savedText else { return true }
-        let alert = NSAlert(); alert.messageText = "是否保存对“\(window.title)”的修改？"; alert.informativeText = "如果不保存，修改将会丢失。"; alert.addButton(withTitle:"保存"); alert.addButton(withTitle:"取消"); alert.addButton(withTitle:"不保存")
+        let alert = NSAlert(); alert.messageText = tr("saveChanges"); alert.informativeText = tr("loseChanges"); alert.addButton(withTitle:tr("save")); alert.addButton(withTitle:tr("cancel")); alert.addButton(withTitle:tr("discard"))
         switch alert.runModal() { case .alertFirstButtonReturn: return save(); case .alertThirdButtonReturn: return true; default: return false }
     }
     func windowShouldClose(_ sender: NSWindow) -> Bool { confirmClose() }
@@ -445,18 +469,20 @@ final class MarkdownHelpWindow: NSObject, WKNavigationDelegate {
 
     init(url: URL, theme: String) {
         selectedTheme = theme
-        web = WKWebView(frame: .zero)
+        let configuration = WKWebViewConfiguration()
+        configuration.userContentController.addUserScript(WKUserScript(source: "window.__markdownREInitialLanguage=\'\(resolvedLanguage())\';", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        web = WKWebView(frame: .zero, configuration: configuration)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 820, height: 700),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         super.init()
-        window.title = "Markdown 语法"
+        window.title = tr("syntax")
         window.minSize = NSSize(width: 480, height: 400)
         window.center()
         window.contentView = web
         web.navigationDelegate = self
         applyTheme(theme)
-        web.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        if url.isFileURL { web.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent()) } else { web.load(URLRequest(url: url)) }
     }
     func applyTheme(_ themeID: String) {
         selectedTheme = themeID
@@ -472,6 +498,10 @@ final class MarkdownHelpWindow: NSObject, WKNavigationDelegate {
         web.evaluateJavaScript(script, completionHandler: nil)
     }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { applyTheme(selectedTheme) }
+    func applyLanguage() {
+        window.title = tr("syntax")
+        web.evaluateJavaScript("window.__markdownREInitialLanguage='\(resolvedLanguage())'; window.setHelpLanguage?.(window.__markdownREInitialLanguage)", completionHandler: nil)
+    }
     func show() { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
 }
 
@@ -493,7 +523,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     var server: ResourceServer!
     var windows: [DocumentWindow] = []
-    var recentMenu = NSMenu(title:"最近打开")
+    var recentMenu = NSMenu(title:tr("recent"))
     var markdownHelp: MarkdownHelpWindow?
     var recents: [String] { preferences.stringArray(forKey:"recent") ?? [] }
     func applicationWillFinishLaunching(_ notification: Notification) {
@@ -503,7 +533,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         do {
             guard let root = Bundle.main.resourceURL?.appendingPathComponent("web") else { throw NSError(domain:"MarkdownRE",code:1) }
             server = try ResourceServer(resources:root)
-        } catch { let a=NSAlert(); a.messageText="启动失败：\(error.localizedDescription)";a.runModal();NSApp.terminate(nil) }
+        } catch { let a=NSAlert(); a.messageText="\(tr("startupFailed")): \(error.localizedDescription)";a.runModal();NSApp.terminate(nil) }
         setupMenus()
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -520,7 +550,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let doc = try DocumentWindow(server:server,url:url)
             track(doc)
             doc.show(); if let url = url { recordRecent(url) }
-        } catch { let a=NSAlert(); a.messageText="无法打开文件"; a.informativeText=error.localizedDescription;a.runModal() }
+        } catch { let a=NSAlert(); a.messageText=tr("openFailed"); a.informativeText=error.localizedDescription;a.runModal() }
     }
     func track(_ doc: DocumentWindow) {
         windows.append(doc)
@@ -535,15 +565,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func recordRecent(_ url: URL) { var items=recents.filter {$0 != url.path}; items.insert(url.path,at:0); preferences.set(Array(items.prefix(50)),forKey:"recent"); updateRecent() }
     @objc func newDocument(_ sender: Any?) { open(nil) }
     @objc func openDocument(_ sender: Any?) { let p=NSOpenPanel();p.allowedContentTypes=[.plainText];p.allowsMultipleSelection=true;if p.runModal() == .OK { p.urls.forEach { open($0) } } }
-    @objc func openRecent(_ sender: NSMenuItem) { guard let path=sender.representedObject as? String else{return}; if FileManager.default.fileExists(atPath:path) { open(URL(fileURLWithPath:path)) } else { let a=NSAlert();a.messageText="文件不存在或无法访问";a.informativeText=path;a.addButton(withTitle:"移除记录");a.addButton(withTitle:"取消");if a.runModal() == .alertFirstButtonReturn {preferences.set(recents.filter{$0 != path},forKey:"recent");updateRecent()} } }
+    @objc func openRecent(_ sender: NSMenuItem) { guard let path=sender.representedObject as? String else{return}; if FileManager.default.fileExists(atPath:path) { open(URL(fileURLWithPath:path)) } else { let a=NSAlert();a.messageText=tr("missingFile");a.informativeText=path;a.addButton(withTitle:tr("removeRecent"));a.addButton(withTitle:tr("cancel"));if a.runModal() == .alertFirstButtonReturn {preferences.set(recents.filter{$0 != path},forKey:"recent");updateRecent()} } }
     @objc func save(_ sender: Any?) { _ = active?.save() }
     @objc func saveAs(_ sender: Any?) { _ = active?.save(asNew:true) }
     @objc func exportPDF(_ sender: Any?) { active?.choosePDFExport() }
     @objc func setDefaultMarkdownApplication(_ sender: Any?) {
         guard let markdown = UTType(filenameExtension: "md") else {
             let alert = NSAlert()
-            alert.messageText = "无法识别 Markdown 文件类型"
-            alert.informativeText = "请在访达中选择一个 .md 文件，通过“显示简介”设置默认打开方式。"
+            alert.messageText = tr("fileTypeFailed")
+            alert.informativeText = tr("setDefaultHint")
             alert.runModal()
             return
         }
@@ -551,11 +581,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             DispatchQueue.main.async {
                 let alert = NSAlert()
                 if let error = error {
-                    alert.messageText = "未能更改默认打开程序"
+                    alert.messageText = tr("setDefaultFailed")
                     alert.informativeText = error.localizedDescription
                 } else {
-                    alert.messageText = "已设置 Markdown 默认打开程序"
-                    alert.informativeText = "今后打开 .md 文件时，将使用 MarkdownRE。"
+                    alert.messageText = tr("setDefaultSuccess")
+                    alert.informativeText = tr("setDefaultDetail")
                 }
                 alert.runModal()
             }
@@ -565,7 +595,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
         let credits = NSAttributedString(
-            string: "Markdown 阅读与编辑工具\n支持 Markdown、扩展语法和数学公式。",
+            string: tr("aboutDetail"),
             attributes: [.font: NSFont.systemFont(ofSize: 12), .foregroundColor: NSColor.secondaryLabelColor, .paragraphStyle: paragraph]
         )
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
@@ -573,9 +603,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc func showMarkdownHelp(_ sender: Any?) {
         if let help = markdownHelp { help.show(); return }
-        guard let page = Bundle.main.resourceURL?.appendingPathComponent("web/help.html"),
-              FileManager.default.fileExists(atPath: page.path) else {
-            let alert = NSAlert(); alert.messageText = "无法加载 Markdown 语法帮助。"; alert.runModal(); return
+        guard let page = URL(string: server.origin + "help.html") else {
+            let alert = NSAlert(); alert.messageText = tr("helpFailed"); alert.runModal(); return
         }
         let help = MarkdownHelpWindow(url: page, theme: preferences.string(forKey: "theme") ?? "solarized-light")
         markdownHelp = help
@@ -583,25 +612,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc func layout(_ sender: NSMenuItem) { if let value = sender.representedObject as? String { active?.send(["type":"layout","layout":value]) } }
     func updateRecent() { recentMenu.removeAllItems();for path in recents { let item=NSMenuItem(title:URL(fileURLWithPath:path).lastPathComponent,action:#selector(openRecent(_:)),keyEquivalent:"");item.target=self;item.representedObject=path;item.toolTip=path;recentMenu.addItem(item) } }
+    @objc func chooseLanguage(_ sender: NSMenuItem) {
+        guard let language = sender.representedObject as? String,
+              language == "system" || languageNames.contains(where: { $0.0 == language }) else { return }
+        preferences.set(language, forKey: "language")
+        setupMenus()
+        for document in windows { document.updateTitle(); document.send(["type":"language", "language":resolvedLanguage()]) }
+        markdownHelp?.applyLanguage()
+    }
     func setupMenus() {
         let bar=NSMenu(); NSApp.mainMenu=bar
         let app=NSMenuItem();bar.addItem(app);let appMenu=NSMenu();app.submenu=appMenu
-        let about = NSMenuItem(title:"关于 MarkdownRE",action:#selector(showAbout(_:)),keyEquivalent:"")
+        let about = NSMenuItem(title:tr("about"),action:#selector(showAbout(_:)),keyEquivalent:"")
         about.target = self; appMenu.addItem(about); appMenu.addItem(.separator())
-        let defaultApp = NSMenuItem(title:"设为 .md 默认打开程序…",action:#selector(setDefaultMarkdownApplication(_:)),keyEquivalent:"")
+        let defaultApp = NSMenuItem(title:tr("defaultApp"),action:#selector(setDefaultMarkdownApplication(_:)),keyEquivalent:"")
         defaultApp.target = self; appMenu.addItem(defaultApp); appMenu.addItem(.separator())
-        appMenu.addItem(withTitle:"退出 MarkdownRE",action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q")
-        let file=NSMenuItem();bar.addItem(file);let fm=NSMenu(title:"文件");file.submenu=fm
+        appMenu.addItem(withTitle:tr("quitApp"),action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q")
+        let file=NSMenuItem();bar.addItem(file);let fm=NSMenu(title:tr("file"));file.submenu=fm
         func add(_ menu:NSMenu,_ title:String,_ action:Selector,_ key:String,_ modifiers:NSEvent.ModifierFlags = [.command]) { let item=NSMenuItem(title:title,action:action,keyEquivalent:key);item.target=self;item.keyEquivalentModifierMask=modifiers;menu.addItem(item) }
-        add(fm,"新建",#selector(newDocument(_:)),"n");add(fm,"打开…",#selector(openDocument(_:)),"o")
-        let recent=NSMenuItem(title:"最近打开",action:nil,keyEquivalent:"");recent.submenu=recentMenu;fm.addItem(recent);updateRecent()
-        fm.addItem(.separator());add(fm,"保存",#selector(save(_:)),"s");add(fm,"另存为…",#selector(saveAs(_:)),"s",[.command,.shift]);add(fm,"导出为 PDF…",#selector(exportPDF(_:)),"");fm.addItem(.separator());fm.addItem(withTitle:"关闭窗口",action:#selector(NSWindow.performClose(_:)),keyEquivalent:"w")
-        let edit=NSMenuItem();bar.addItem(edit);let em=NSMenu(title:"编辑");em.delegate=self;edit.submenu=em
-        for (title,action,key) in [("撤销",Selector(("undo:")),"z"),("剪切",#selector(NSText.cut(_:)),"x"),("复制",#selector(NSText.copy(_:)),"c"),("粘贴",#selector(NSText.paste(_:)),"v"),("全选",#selector(NSText.selectAll(_:)),"a")] { em.addItem(withTitle:title,action:action,keyEquivalent:key) }
-        let view=NSMenuItem();bar.addItem(view);let vm=NSMenu(title:"显示");view.submenu=vm
-        for (title,value,key) in [("纯预览","preview","1"),("纯编辑","editor","2"),("左右分栏","horizontal","3"),("上下分栏","vertical","4")] { let item=NSMenuItem(title:title,action:#selector(layout(_:)),keyEquivalent:key);item.target=self;item.representedObject=value;vm.addItem(item) }
-        let help=NSMenuItem();bar.addItem(help);let hm=NSMenu(title:"帮助");help.submenu=hm
-        add(hm,"Markdown 语法",#selector(showMarkdownHelp(_:)),"")
+        add(fm,tr("new"),#selector(newDocument(_:)),"n");add(fm,tr("open"),#selector(openDocument(_:)),"o")
+        recentMenu = NSMenu(title:tr("recent"));let recent=NSMenuItem(title:tr("recent"),action:nil,keyEquivalent:"");recent.submenu=recentMenu;fm.addItem(recent);updateRecent()
+        fm.addItem(.separator());add(fm,tr("save"),#selector(save(_:)),"s");add(fm,tr("saveAs"),#selector(saveAs(_:)),"s",[.command,.shift]);add(fm,tr("exportPdf"),#selector(exportPDF(_:)),"");fm.addItem(.separator());fm.addItem(withTitle:tr("close"),action:#selector(NSWindow.performClose(_:)),keyEquivalent:"w")
+        let edit=NSMenuItem();bar.addItem(edit);let em=NSMenu(title:tr("edit"));em.delegate=self;edit.submenu=em
+        for (title,action,key) in [(tr("undo"),Selector(("undo:")),"z"),(tr("cut"),#selector(NSText.cut(_:)),"x"),(tr("copy"),#selector(NSText.copy(_:)),"c"),(tr("paste"),#selector(NSText.paste(_:)),"v"),(tr("selectAll"),#selector(NSText.selectAll(_:)),"a")] { em.addItem(withTitle:title,action:action,keyEquivalent:key) }
+        let view=NSMenuItem();bar.addItem(view);let vm=NSMenu(title:tr("view"));view.submenu=vm
+        for (title,value,key) in [(tr("preview"),"preview","1"),(tr("editor"),"editor","2"),(tr("horizontal"),"horizontal","3"),(tr("vertical"),"vertical","4")] { let item=NSMenuItem(title:title,action:#selector(layout(_:)),keyEquivalent:key);item.target=self;item.representedObject=value;vm.addItem(item) }
+        vm.addItem(.separator())
+        let languageItem = NSMenuItem(title:tr("language"),action:nil,keyEquivalent:"");let languageMenu = NSMenu(title:tr("language"));languageItem.submenu=languageMenu;vm.addItem(languageItem)
+        let selected = preferences.string(forKey:"language") ?? "system"
+        for (id,name) in [("system",tr("systemLanguage"))] + languageNames {
+            let item=NSMenuItem(title:name,action:#selector(chooseLanguage(_:)),keyEquivalent:"");item.target=self;item.representedObject=id;item.state = id == selected ? .on : .off;languageMenu.addItem(item)
+        }
+        let help=NSMenuItem();bar.addItem(help);let hm=NSMenu(title:tr("help"));help.submenu=hm
+        add(hm,tr("syntax"),#selector(showMarkdownHelp(_:)),"")
     }
 }
 let app=NSApplication.shared

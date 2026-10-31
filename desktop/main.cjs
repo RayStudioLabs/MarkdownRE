@@ -5,25 +5,32 @@ const {randomUUID}=require('node:crypto');
 const {fileURLToPath}=require('node:url');
 const {decodeDocument,encodeDocument,fileHash,atomicSave,confinedPath}=require('./files.cjs');
 const UI='markdownre://ui/index.html';
+const dictionaries=require('../web-dist/locales.json');
+const languageNames={'zh-Hans':'简体中文','zh-Hant':'繁體中文',en:'English',de:'Deutsch',fr:'Français',es:'Español',ja:'日本語',ko:'한국어','pt-BR':'Português (Brasil)',it:'Italiano'};
+function resolveLanguage(value) {if (value && value !== 'system' && languageNames[value]) return value; const tag=app.getLocale().replaceAll('_','-').toLowerCase();if(tag==='zh'||tag.startsWith('zh-')){const parts=tag.split('-');return parts.includes('hant')?'zh-Hant':parts.includes('hans')?'zh-Hans':parts.some(part=>['tw','hk','mo'].includes(part))?'zh-Hant':'zh-Hans';}if(tag.startsWith('pt'))return 'pt-BR';return languageNames[tag.split('-')[0]]?tag.split('-')[0]:'en';}
+function t(key){return dictionaries[resolveLanguage(preferences.language)]?.[key]||dictionaries.en[key]||key;}
+
 const webRoot=path.join(__dirname,'../web-dist');
 const documents=new Map();
 const themes=new Set(['dark-background','light-background','smoooooth','solarized-dark','solarized-light','tango-dark','tango-light']);
-let preferences={theme:'solarized-light',horizontal:0.5,vertical:0.5},preferencesQueue=Promise.resolve();
+let preferences={theme:'solarized-light',horizontal:0.5,vertical:0.5,language:'system'},preferencesQueue=Promise.resolve();
 const earlyFiles=[];
 protocol.registerSchemesAsPrivileged([{scheme:'markdownre',privileges:{standard:true,secure:true,supportFetchAPI:true,allowServiceWorkers:false}}]);
 if(!app.requestSingleInstanceLock()) {app.quit();} else {
   app.on('second-instance',(_event,args)=>{for(const file of documentArgs(args))void openDocument(file);const win=BrowserWindow.getAllWindows()[0];if(win){if(win.isMinimized())win.restore();win.focus();}});
   app.on('open-file',(event,file)=>{event.preventDefault();if(app.isReady())void openDocument(file);else earlyFiles.push(file);});
-  app.whenReady().then(start).catch(error=>{dialog.showErrorBox('启动失败',error.message);app.quit();});
+  app.whenReady().then(start).catch(error=>{dialog.showErrorBox(t('startupFailed'),localizedError(error));app.quit();});
 }
 app.on('window-all-closed',()=>app.quit());
 function documentArgs(args) {return args.slice(app.isPackaged?1:2).filter(arg=>!arg.startsWith('-')&&/\.(md|markdown|mdown|txt)$/i.test(arg)).map(file=>file.startsWith('file:')?fileURLToPath(file):path.resolve(file));}
 function send(doc,message){if(!doc.win.isDestroyed())doc.win.webContents.send('native-message',message);}
-function updateTitle(doc){doc.win.setTitle(`${doc.text===doc.savedText?'':'● '}${doc.file?path.basename(doc.file):'未命名.md'} — MarkdownRE`);doc.win.setDocumentEdited(doc.text!==doc.savedText);}
-function errorBox(doc,error){return dialog.showMessageBox(doc.win,{type:'error',message:error.message||String(error)});}
+function updateTitle(doc){doc.win.setTitle(`${doc.text===doc.savedText?'':'● '}${doc.file?path.basename(doc.file):`${t('untitled')}.md`} — MarkdownRE`);doc.win.setDocumentEdited(doc.text!==doc.savedText);}
+const fileErrors={'无法识别文件编码，文件未打开。支持 UTF-8 和带 BOM 的 UTF-16。':'encodingError','文件包含混合换行符，暂无法安全编辑。':'mixedNewlines','文件在保存前再次发生变化，请重试。':'changedAgain','文件已被其他程序修改，未覆盖外部内容。':'changedBeforeSave','非法资源路径':'invalidResource','资源超出文档目录':'resourceOutside'};
+function localizedError(error){const message=error.message||String(error);return fileErrors[message]?t(fileErrors[message]):message;}
+function errorBox(doc,error){return dialog.showMessageBox(doc.win,{type:'error',message:localizedError(error)});}
 function storePreferences(){const data=JSON.stringify(preferences);preferencesQueue=preferencesQueue.then(()=>fs.writeFile(path.join(app.getPath('userData'),'preferences.json'),data)).catch(()=>{});}
-async function chooseOpen(){const result=await dialog.showOpenDialog({properties:['openFile','multiSelections'],filters:[{name:'Markdown / 文本',extensions:['md','markdown','mdown','txt']}]});if(!result.canceled)for(const file of result.filePaths)await openDocument(file);}
-function snapshot(doc){return new Promise((resolve,reject)=>{const action=randomUUID();const timer=setTimeout(()=>{doc.requests.delete(action);reject(new Error('编辑器尚未响应，未保存或关闭文档。'));},10000);doc.requests.set(action,{resolve:text=>{clearTimeout(timer);resolve(text);},reject});send(doc,{type:'requestContent',action});});}
+async function chooseOpen(){const result=await dialog.showOpenDialog({properties:['openFile','multiSelections'],filters:[{name:`Markdown / ${t('textFiles')}`,extensions:['md','markdown','mdown','txt']}]});if(!result.canceled)for(const file of result.filePaths)await openDocument(file);}
+function snapshot(doc){return new Promise((resolve,reject)=>{const action=randomUUID();const timer=setTimeout(()=>{doc.requests.delete(action);reject(new Error(t('editorUnresponsive')));},10000);doc.requests.set(action,{resolve:text=>{clearTimeout(timer);resolve(text);},reject});send(doc,{type:'requestContent',action});});}
 async function exportPDF(doc,file){
   if(doc.exportingPDF)return false;
   doc.exportingPDF=true;
@@ -36,7 +43,7 @@ async function exportPDF(doc,file){
   finally{if(!doc.win.isDestroyed())await doc.win.webContents.executeJavaScript('window.finishPDFExport()').catch(()=>{});doc.exportingPDF=false;}
 }
 async function choosePDFExport(doc){
-  const defaultPath=doc.file?path.join(path.dirname(doc.file),path.parse(doc.file).name+'.pdf'):'未命名.pdf';
+  const defaultPath=doc.file?path.join(path.dirname(doc.file),path.parse(doc.file).name+'.pdf'):`${t('untitled')}.pdf`;
   const result=await dialog.showSaveDialog(doc.win,{defaultPath,filters:[{name:'PDF',extensions:['pdf']}],properties:['showOverwriteConfirmation']});
   if(!result.canceled&&result.filePath)await exportPDF(doc,result.filePath);
 }
@@ -45,9 +52,9 @@ async function save(doc,saveAs=false) {
   try {
     const text=await snapshot(doc);doc.text=text;
     let file=doc.file;
-    if(!file||saveAs){const result=await dialog.showSaveDialog(doc.win,{defaultPath:file||'未命名.md',filters:[{name:'Markdown',extensions:['md']},...(saveAs?[{name:'PDF',extensions:['pdf']}]:[]),{name:'文本',extensions:['txt']}],properties:['showOverwriteConfirmation']});if(result.canceled)return false;file=result.filePath;if(saveAs&&path.extname(file).toLowerCase()==='.pdf'){await exportPDF(doc,file);return false;}}
+    if(!file||saveAs){const result=await dialog.showSaveDialog(doc.win,{defaultPath:file||`${t('untitled')}.md`,filters:[{name:'Markdown',extensions:['md']},...(saveAs?[{name:'PDF',extensions:['pdf']}]:[]),{name:t('textFiles'),extensions:['txt']}],properties:['showOverwriteConfirmation']});if(result.canceled)return false;file=result.filePath;if(saveAs&&path.extname(file).toLowerCase()==='.pdf'){await exportPDF(doc,file);return false;}}
     const current=await fileHash(file);
-    if(file===doc.file&&current!==doc.format.hash){const r=await dialog.showMessageBox(doc.win,{type:'warning',message:'文件已被其他程序修改或删除，是否覆盖？',buttons:['取消','覆盖'],defaultId:0,cancelId:0});if(r.response!==1)return false;}
+    if(file===doc.file&&current!==doc.format.hash){const r=await dialog.showMessageBox(doc.win,{type:'warning',message:t('changedOrDeleted'),buttons:[t('cancel'),t('overwrite')],defaultId:0,cancelId:0});if(r.response!==1)return false;}
     const data=encodeDocument(text,doc.format);const hash=await atomicSave(file,data,current);
     doc.file=file;doc.savedText=text;doc.format.hash=hash;updateTitle(doc);app.addRecentDocument(file);
     send(doc,{type:'documentBase',base:`markdownre://document/${doc.token}/`});return true;
@@ -56,7 +63,7 @@ async function save(doc,saveAs=false) {
 async function confirmClose(doc){
   try {doc.text=await snapshot(doc);updateTitle(doc);}catch(error){await errorBox(doc,error);return false;}
   if(doc.text===doc.savedText)return true;
-  const r=await dialog.showMessageBox(doc.win,{type:'question',message:'是否保存对文档的修改？',buttons:['保存','取消','不保存'],defaultId:0,cancelId:1});
+  const r=await dialog.showMessageBox(doc.win,{type:'question',message:t('saveChanges'),buttons:[t('save'),t('cancel'),t('discard')],defaultId:0,cancelId:1});
   return r.response===2||(r.response===0&&await save(doc)&&doc.text===doc.savedText);
 }
 async function openDocument(file){
@@ -69,12 +76,12 @@ async function openDocument(file){
     win.webContents.on('will-navigate',(event,url)=>{if(url!==UI)event.preventDefault();});
     win.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
     win.webContents.session.setPermissionCheckHandler(()=>false);
-    win.webContents.on('render-process-gone',()=>{if(!win.isDestroyed()){win.show();void errorBox(doc,new Error('编辑器进程已停止。请勿丢弃尚未保存的内容。'));}});
+    win.webContents.on('render-process-gone',()=>{if(!win.isDestroyed()){win.show();void errorBox(doc,new Error(t('editorStopped')));}});
     win.on('close',event=>{if(doc.allowClose)return;event.preventDefault();if(doc.closing)return;doc.closing=true;void confirmClose(doc).then(ok=>{doc.closing=false;if(ok){doc.allowClose=true;win.close();}});});
     const contentsId=win.webContents.id;
     win.on('closed',()=>documents.delete(contentsId));
     await win.loadURL(UI);win.show();if(file)app.addRecentDocument(file);
-  }catch(error){dialog.showErrorBox('打开失败',error.message);}
+  }catch(error){dialog.showErrorBox(t('openFailed'),localizedError(error));}
 }
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.svg':'image/svg+xml','.avif':'image/avif','.ico':'image/x-icon','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf'};
 async function resource(request){
@@ -93,21 +100,27 @@ async function resource(request){
   }catch{return new Response('',{status:404});}
 }
 function focused(){return documents.get(BrowserWindow.getFocusedWindow()?.webContents.id);}
+function setLanguage(value) {
+  if (value !== 'system' && !languageNames[value]) return;
+  preferences.language = value; storePreferences(); makeMenu();
+  for (const doc of documents.values()) { updateTitle(doc); send(doc, {type:'language',language:resolveLanguage(value)}); }
+  for (const win of BrowserWindow.getAllWindows()) if (win.__markdownHelp) { win.setTitle(t('syntax')); void win.webContents.executeJavaScript(`window.__markdownREInitialLanguage=${JSON.stringify(resolveLanguage(value))}; window.setHelpLanguage?.(window.__markdownREInitialLanguage)`); }
+}
 function makeMenu(){Menu.setApplicationMenu(Menu.buildFromTemplate([
  ...(process.platform==='darwin'?[{role:'appMenu'}]:[]),
- {label:'文件',submenu:[{label:'新建',accelerator:'CmdOrCtrl+N',click:()=>openDocument()},{label:'打开…',accelerator:'CmdOrCtrl+O',click:chooseOpen},{label:'最近打开',submenu:[{role:'recentDocuments',submenu:[{role:'clearRecentDocuments',label:'清空最近文件'}]}]},{type:'separator'},{label:'保存',accelerator:'CmdOrCtrl+S',click:()=>{const d=focused();if(d)void save(d);}},{label:'另存为…',accelerator:'CmdOrCtrl+Shift+S',click:()=>{const d=focused();if(d)void save(d,true);}},{label:'导出为 PDF…',click:()=>{const d=focused();if(d)void choosePDFExport(d);}},{type:'separator'},{role:'close',label:'关闭窗口'},{role:'quit',label:'退出'}]},
- {label:'编辑',submenu:[{label:'撤销',accelerator:'CmdOrCtrl+Z',click:()=>{const d=focused();if(d)send(d,{type:'edit',command:'undo'});}},{label:'重做',accelerator:'CmdOrCtrl+Shift+Z',click:()=>{const d=focused();if(d)send(d,{type:'edit',command:'redo'});}},{type:'separator'},{role:'cut',label:'剪切'},{role:'copy',label:'复制'},{role:'paste',label:'粘贴'},{role:'selectAll',label:'全选'}]},
- {label:'视图',submenu:[...['preview','horizontal','vertical','editor'].map((layout,i)=>({label:['纯预览','左右分栏','上下分栏','纯编辑'][i],click:()=>{const d=focused();if(d)send(d,{type:'layout',layout});}})),{type:'separator'},{role:'togglefullscreen',label:'全屏'}]},
- {label:'帮助',submenu:[{label:'Markdown 语法',click:()=>{const win=new BrowserWindow({width:850,height:700,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',e=>e.preventDefault());void win.loadURL('markdownre://ui/help.html');}},{label:'关于 MarkdownRE',click:()=>dialog.showMessageBox({message:`MarkdownRE ${app.getVersion()}`,detail:'Markdown 阅读与编辑工具'})}]},
+ {id:'file',label:t('file'),submenu:[{id:'newDocument',label:t('new'),accelerator:'CmdOrCtrl+N',click:()=>openDocument()},{label:t('open'),accelerator:'CmdOrCtrl+O',click:chooseOpen},{label:t('recent'),submenu:[{role:'recentDocuments',submenu:[{role:'clearRecentDocuments',label:t('clearRecent')}]}]},{type:'separator'},{label:t('save'),accelerator:'CmdOrCtrl+S',click:()=>{const d=focused();if(d)void save(d);}},{id:'saveAs',label:t('saveAs'),accelerator:'CmdOrCtrl+Shift+S',click:()=>{const d=focused();if(d)void save(d,true);}},{id:'exportPdf',label:t('exportPdf'),click:()=>{const d=focused();if(d)void choosePDFExport(d);}},{type:'separator'},{role:'close',label:t('close')},{role:'quit',label:t('quit')}]},
+ {id:'edit',label:t('edit'),submenu:[{label:t('undo'),accelerator:'CmdOrCtrl+Z',click:()=>{const d=focused();if(d)send(d,{type:'edit',command:'undo'});}},{label:t('redo'),accelerator:'CmdOrCtrl+Shift+Z',click:()=>{const d=focused();if(d)send(d,{type:'edit',command:'redo'});}},{type:'separator'},{role:'cut',label:t('cut')},{role:'copy',label:t('copy')},{role:'paste',label:t('paste')},{role:'selectAll',label:t('selectAll')}]},
+ {id:'view',label:t('view'),submenu:[...['preview','horizontal','vertical','editor'].map(layout=>({label:t(layout),click:()=>{const d=focused();if(d)send(d,{type:'layout',layout});}})),{type:'separator'},{label:t('language'),submenu:[{id:'language-system',type:'radio',label:t('systemLanguage'),checked:preferences.language==='system',click:()=>setLanguage('system')},{type:'separator'},...Object.entries(languageNames).map(([id,name])=>({id:`language-${id}`,type:'radio',label:name,checked:preferences.language===id,click:()=>setLanguage(id)}))]},{type:'separator'},{role:'togglefullscreen',label:t('fullscreen')}]},
+ {id:'help',label:t('help'),submenu:[{id:'syntax',label:t('syntax'),click:()=>{const win=new BrowserWindow({title:t('syntax'),width:850,height:700,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});win.__markdownHelp=true;win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',e=>e.preventDefault());void win.loadURL(`markdownre://ui/help.html?lang=${encodeURIComponent(resolveLanguage(preferences.language))}`);}},{label:t('about'),click:()=>dialog.showMessageBox({message:`MarkdownRE ${app.getVersion()}`,detail:t('aboutDetail')})}]},
 ]));}
 async function start(){
-  await fs.mkdir(app.getPath('userData'),{recursive:true});try{const p=JSON.parse(await fs.readFile(path.join(app.getPath('userData'),'preferences.json'),'utf8'));if(themes.has(p.theme))preferences.theme=p.theme;for(const k of ['horizontal','vertical'])if(Number.isFinite(p[k])&&p[k]>=0.15&&p[k]<=0.85)preferences[k]=p[k];}catch{}
+  await fs.mkdir(app.getPath('userData'),{recursive:true});try{const p=JSON.parse(await fs.readFile(path.join(app.getPath('userData'),'preferences.json'),'utf8'));if(themes.has(p.theme))preferences.theme=p.theme;if(p.language==='system'||languageNames[p.language])preferences.language=p.language;for(const k of ['horizontal','vertical'])if(Number.isFinite(p[k])&&p[k]>=0.15&&p[k]<=0.85)preferences[k]=p[k];}catch{}
   protocol.handle('markdownre',resource);
   ipcMain.on('app-message',(event,message)=>{
     const doc=documents.get(event.sender.id);
     if(!doc||event.senderFrame!==event.sender.mainFrame||event.senderFrame.url!==UI||!message||typeof message.type!=='string')return;
     switch(message.type){
-      case 'ready':doc.ready=true;send(doc,{type:'preferences',...preferences});send(doc,{type:'document',text:doc.text,base:`markdownre://document/${doc.token}/`});break;
+      case 'ready':doc.ready=true;send(doc,{type:'preferences',...preferences,language:resolveLanguage(preferences.language)});send(doc,{type:'document',text:doc.text,base:`markdownre://document/${doc.token}/`});break;
       case 'changed':if(typeof message.text==='string'){doc.text=message.text;updateTitle(doc);}break;
       case 'content':if(typeof message.text==='string'){const request=doc.requests.get(message.action);doc.requests.delete(message.action);request?.resolve(message.text);}break;
       case 'openDocument':void chooseOpen();break;

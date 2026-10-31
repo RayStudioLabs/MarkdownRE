@@ -4,7 +4,13 @@ MarkdownRE 是 RayStudioLabs 开发的免费开源 Markdown 阅读和编辑器�
 
 [下载测试版](https://github.com/RayStudioLabs/MarkdownRE/releases) · [MIT 许可证](LICENSE) · [第三方声明](THIRD_PARTY_NOTICES.md)
 
-支持 Markdown 预览、Monaco 语法高亮编辑、四种窗口布局、主题、数学公式及 PDF 导出。安装包目前提供 macOS Apple Silicon 和 Windows/Linux x64 版本；Windows/Linux 当前发布包由 macOS 交叉构建，尚未在对应系统实机验证。
+支持 Markdown 预览、Monaco 语法高亮编辑、四种窗口布局、主题、数学公式及 PDF 导出。编辑工具栏提供常用 Markdown 格式快捷按钮，点击即可插入或切换格式，无需记住每种语法。安装包目前提供 macOS Apple Silicon 和 Windows/Linux x64 版本；Windows/Linux 当前发布包由 macOS 交叉构建，尚未在对应系统实机验证。
+
+## 界面语言
+
+在系统菜单「显示 / View → 语言 / Language」中，可选择跟随系统或手动切换简体中文、繁体中文、英语、德语、法语、西班牙语、日语、韩语、葡萄牙语（巴西）和意大利语。选择会保存，并同步到打开的窗口。系统语言不受支持时默认使用英语；葡萄牙语地区统一使用巴西葡萄牙语。
+
+应用菜单、工具栏、帮助和常见提示使用共享翻译。Monaco 编辑器自身的部分内置界面仍显示英语，原生系统对话框的系统按钮由操作系统控制。初版译文含机器翻译，欢迎母语使用者提交校对。
 
 ## 本地构建
 

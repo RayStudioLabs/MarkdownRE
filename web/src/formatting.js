@@ -102,7 +102,7 @@ function inlineDelimiters(node, text) {
   return null;
 }
 
-function insertTable(text, offset, nodes) {
+function insertTable(text, offset, nodes, labels) {
   let line = lineInfo(text, offset);
   // Include any lines spanned by inline formatting so both sides get complete delimiters.
   const spanning = nodes.filter(node => inlineDelimiters(node, text) &&
@@ -151,7 +151,8 @@ function insertTable(text, offset, nodes) {
     if (hasLeft) before = line.text;
     else after = line.text;
   }
-  const table = '| 表头 1 | 表头 2 |\n| --- | --- |\n| 内容 1 | 内容 2 |';
+  const header = labels.tableHeader || '表头', content = labels.tableContent || '内容';
+  const table = `| ${header} 1 | ${header} 2 |\n| --- | --- |\n| ${content} 1 | ${content} 2 |`;
   const previous = line.start > 0 ? text.slice(0, line.start - 1).split('\n').at(-1) : '';
   const next = line.end < text.length ? text.slice(line.end + 1).split('\n')[0] : '';
   const leading = !before && previous.trim() ? '\n' : '';
@@ -159,9 +160,9 @@ function insertTable(text, offset, nodes) {
   const beforeTable = before ? `${before}\n\n` : '';
   const replacement = leading + beforeTable + table + (after ? `\n\n${after}` : '') + trailing;
   const cursor = line.start + leading.length + beforeTable.length + 2;
-  return change(line.start, line.end, replacement, cursor, cursor + 4);
+  return change(line.start, line.end, replacement, cursor, cursor + header.length + 2);
 }
-export function formatMarkdown(text, start, end, kind) {
+export function formatMarkdown(text, start, end, kind, labels = {}) {
   const nodes = nodesAt(text, start, end);
   const active = activeFormats(text, start, end);
   const currentBlock = [...nodes].reverse().find(n => n.type === 'code' || n.type === 'math');
@@ -237,9 +238,9 @@ export function formatMarkdown(text, start, end, kind) {
       if (wrappers[kind]) return change(a, b, wrappers[kind] + content + wrappers[kind], a + wrappers[kind].length, a + wrappers[kind].length + content.length);
       // Links and images replace the code span below using its plain content.
       start = a; end = b;
-      const label = content || (kind === 'image' ? '图片说明' : '链接文字');
+      const label = content || (kind === 'image' ? (labels.imageDescription || '图片说明') : (labels.linkText || '链接文字'));
       const before = kind === 'image' ? '![' : '[';
-      const url = kind === 'image' ? '图片地址' : 'https://';
+      const url = kind === 'image' ? (labels.imageUrl || '图片地址') : 'https://';
       const result = `${before}${label}](${url})`;
       return change(a, b, result, a + before.length + label.length + 2, a + before.length + label.length + 2 + url.length);
     }
@@ -248,8 +249,8 @@ export function formatMarkdown(text, start, end, kind) {
       return change(start, end, marker + content + marker, start + marker.length, end + marker.length);
     }
     const before = kind === 'image' ? '![' : '[';
-    const label = text.slice(start, end) || (kind === 'image' ? '图片说明' : '链接文字');
-    const url = kind === 'image' ? '图片地址' : 'https://';
+    const label = text.slice(start, end) || (kind === 'image' ? (labels.imageDescription || '图片说明') : (labels.linkText || '链接文字'));
+    const url = kind === 'image' ? (labels.imageUrl || '图片地址') : 'https://';
     const result = `${before}${label}](${url})`;
     const cursor = start + before.length + (start === end ? 0 : label.length + 2);
     return change(start, end, result, cursor, cursor + (start === end ? label.length : url.length));
@@ -298,11 +299,11 @@ export function formatMarkdown(text, start, end, kind) {
         const prefix = `${'#'.repeat(heading.depth)} `;
         const virtual = text.slice(0, a) + prefix + setext[1] + text.slice(b);
         const caret = a + prefix.length + Math.min(setext[1].length, Math.max(0, start - a));
-        const edit = insertTable(virtual, caret, nodesAt(virtual, caret, caret));
+        const edit = insertTable(virtual, caret, nodesAt(virtual, caret, caret), labels);
         return change(a, b, edit.text, edit.start, edit.end);
       }
     }
-    return insertTable(text, start, nodes);
+    return insertTable(text, start, nodes, labels);
   }
   if (kind === 'rule') {
     const line = lineInfo(text, start);

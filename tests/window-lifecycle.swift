@@ -10,16 +10,16 @@ testDelegate.server = try ResourceServer(resources: URL(fileURLWithPath: Command
 testDelegate.setupMenus()
 let appMenu = testApp.mainMenu?.items.first?.submenu
 let aboutItem = appMenu?.items.first
-precondition(aboutItem?.title == "关于 MarkdownRE" && aboutItem?.action == #selector(AppDelegate.showAbout(_:)) && aboutItem?.target === testDelegate, "About menu is missing")
-precondition(appMenu?.items.contains(where: { $0.title == "设为 .md 默认打开程序…" && $0.action == #selector(AppDelegate.setDefaultMarkdownApplication(_:)) && $0.target === testDelegate }) == true, "Default Markdown application menu is missing")
+precondition(aboutItem?.title == tr("about") && aboutItem?.action == #selector(AppDelegate.showAbout(_:)) && aboutItem?.target === testDelegate, "About menu is missing")
+precondition(appMenu?.items.contains(where: { $0.title == tr("defaultApp") && $0.action == #selector(AppDelegate.setDefaultMarkdownApplication(_:)) && $0.target === testDelegate }) == true, "Default Markdown application menu is missing")
 testDelegate.showAbout(nil)
 precondition(testApp.windows.contains(where: { $0 is NSPanel }), "About panel did not open")
 testApp.windows.filter { $0 is NSPanel }.forEach { $0.close() }
 print("About menu and native panel: opened successfully")
 let helpMenu = testApp.mainMenu?.items.last?.submenu
-precondition(helpMenu?.title == "帮助" && helpMenu?.items.contains(where: { $0.title == "Markdown 语法" }) == true, "Help menu is missing")
-let fileMenu = testApp.mainMenu?.items.first(where: { $0.submenu?.title == "文件" })?.submenu
-precondition(fileMenu?.items.contains(where: { $0.title == "导出为 PDF…" && $0.action == #selector(AppDelegate.exportPDF(_:)) }) == true, "PDF export menu is missing")
+precondition(helpMenu?.title == tr("help") && helpMenu?.items.contains(where: { $0.title == tr("syntax") }) == true, "Help menu is missing")
+let fileMenu = testApp.mainMenu?.items.first(where: { $0.submenu?.title == tr("file") })?.submenu
+precondition(fileMenu?.items.contains(where: { $0.title == tr("exportPdf") && $0.action == #selector(AppDelegate.exportPDF(_:)) }) == true, "PDF export menu is missing")
 let formatPanel = NSSavePanel()
 formatPanel.nameFieldStringValue = "example.md"
 let formatChooser = SaveFormatChooser(panel: formatPanel)
@@ -29,21 +29,22 @@ precondition(formatPanel.allowedContentTypes == [.pdf] && formatPanel.nameFieldS
 formatChooser.popup.selectItem(at: 0)
 _ = NSApp.sendAction(formatChooser.popup.action!, to: formatChooser, from: formatChooser.popup)
 precondition(formatPanel.nameFieldStringValue == "example.md", "Save As did not switch back to Markdown")
-let helpURL = URL(fileURLWithPath: CommandLine.arguments[1]).appendingPathComponent("help.html")
+let helpURL = URL(string: testDelegate.server.origin + "help.html")!
 let helpWindow = MarkdownHelpWindow(url: helpURL, theme: "solarized-dark")
-precondition(helpWindow.window.title == "Markdown 语法" && !helpWindow.window.isReleasedWhenClosed)
+testDelegate.markdownHelp = helpWindow
+precondition(helpWindow.window.title == tr("syntax") && !helpWindow.window.isReleasedWhenClosed)
 let helpDeadline = Date(timeIntervalSinceNow: 8)
 var helpTitle: String?
-while helpTitle != "Markdown 语法" && Date() < helpDeadline {
+while helpTitle != tr("syntax") && Date() < helpDeadline {
     var checked = false
     helpWindow.web.evaluateJavaScript("document.querySelector('h1')?.textContent || ''") { result, _ in
         helpTitle = result as? String
         checked = true
     }
     while !checked && Date() < helpDeadline { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05)) }
-    if helpTitle != "Markdown 语法" { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.1)) }
+    if helpTitle != tr("syntax") { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.1)) }
 }
-precondition(helpTitle == "Markdown 语法", "Help page did not load")
+precondition(helpTitle == tr("syntax"), "Help page did not load")
 helpWindow.window.performClose(nil)
 print("Help menu and Markdown guide: loaded successfully")
 let previousTheme = preferences.string(forKey: "theme")
@@ -88,6 +89,23 @@ while previewTitle != "启动测试" && Date() < previewDeadline {
 }
 precondition(previewTitle == "启动测试", "Document preview did not load")
 print("Document preview loaded in \(Int(Date().timeIntervalSince(startTime) * 1000)) ms (off-screen test)")
+let originalLanguage = preferences.string(forKey: "language")
+let choice = NSMenuItem(); choice.representedObject = "ja"
+testDelegate.chooseLanguage(choice)
+precondition(preferences.string(forKey: "language") == "ja", "Language choice was not saved")
+precondition(testApp.mainMenu?.items.first(where: { $0.submenu?.title == tr("file") }) != nil, "Native menu did not change language")
+var localized = false
+let languageDeadline = Date(timeIntervalSinceNow: 5)
+while !localized && Date() < languageDeadline {
+    var checked = false
+    startupDocument.web.evaluateJavaScript("document.documentElement.lang") { result, _ in localized = (result as? String) == "ja"; checked = true }
+    while !checked && Date() < languageDeadline { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05)) }
+}
+precondition(localized, "Web toolbar did not change language")
+if let originalLanguage = originalLanguage { preferences.set(originalLanguage, forKey: "language") } else { preferences.removeObject(forKey: "language") }
+testDelegate.setupMenus()
+print("Native menu, language preference and WebView: localized successfully")
+
 let imageURL = fixtureURL.deletingLastPathComponent().appendingPathComponent("icon.png")
 try Data(contentsOf: URL(fileURLWithPath: "macos/assets/MarkdownDocument.png")).write(to: imageURL)
 let exportText = "# PDF export validation\n\nFormula: $x^2+y^2=z^2$\n\n| Name | Value |\n|---|---|\n| Example | 42 |\n\n![local image](icon.png)\n\n" + (1...50).map { "## Section \($0)\n\nParagraph with **bold** and `code`.\n\n" }.joined() + "End of exported document."
