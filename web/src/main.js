@@ -1,5 +1,6 @@
 import {loadTranslations, resolveLanguage, translate} from './i18n.js';
 import {syncPreviewScroll} from './scroll-sync.js';
+import {localImageURL} from './image-path.js';
 import {themes, normalizeTheme} from './themes.js';
 import {renderIcons} from './icons.js';
 import './style.css';
@@ -111,7 +112,7 @@ async function render(text) {
     preview.innerHTML = html;
     for (const image of preview.querySelectorAll('img[src]')) {
       const src = image.getAttribute('src');
-      if (src && !/^(?:https?:|data:|blob:|\/\/)/i.test(src)) image.src = state.base + src.split('/').map(encodeURIComponent).join('/');
+      if (src) image.src = localImageURL(state.base, src);
       image.referrerPolicy = 'no-referrer';
     }
     schedulePreviewSync();

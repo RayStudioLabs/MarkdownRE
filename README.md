@@ -46,7 +46,7 @@ open build/MarkdwonRE.app
 验证开发包与安装镜像的标识、图标及签名：
 
 ```sh
-./tests/macos-packaging.sh build/MarkdownRE-0.2.0-arm64.dmg
+./tests/macos-packaging.sh build/MarkdownRE-0.2.1-arm64.dmg
 ```
 
 该检查只挂载镜像到临时目录，不安装或启动应用。

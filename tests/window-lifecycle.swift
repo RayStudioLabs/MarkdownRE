@@ -116,6 +116,38 @@ if let originalLanguage = originalLanguage { preferences.set(originalLanguage, f
 testDelegate.setupMenus()
 print("Native menu, language preference and WebView: localized successfully")
 
+// Exercise the same encoded Unicode paths used by Markdown exports.
+let imagesFolder = fixtureURL.deletingLastPathComponent().appendingPathComponent("图片和附件")
+try FileManager.default.createDirectory(at: imagesFolder, withIntermediateDirectories: true)
+let sampleImage = try Data(contentsOf: URL(fileURLWithPath: "macos/assets/MarkdownDocument.png"))
+for name in ["image 5.png", "100%.png", "a%20b.png"] { try sampleImage.write(to: imagesFolder.appendingPathComponent(name)) }
+let imageMarkdown = "![space](图片和附件/image%205.png)\n\n![percent](图片和附件/100%25.png)\n\n![literal](图片和附件/a%2520b.png)"
+startupDocument.send(["type":"document", "text":imageMarkdown, "base":testDelegate.server.origin + "doc/\(startupDocument.id)/"])
+func loadedImageCount(_ document: DocumentWindow, expected: Int, timeout: TimeInterval = 12) -> Int {
+    let deadline = Date(timeIntervalSinceNow: timeout)
+    var count = -1
+    while Date() < deadline {
+        var checked = false
+        document.web.evaluateJavaScript("Array.from(document.querySelectorAll('#preview img')).filter(i => i.complete && i.naturalWidth > 0).length") { result, _ in
+            count = (result as? NSNumber)?.intValue ?? -1
+            checked = true
+        }
+        while !checked && Date() < deadline { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05)) }
+        if count == expected { return count }
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+    }
+    return count
+}
+precondition(loadedImageCount(startupDocument, expected: 3) == 3, "Encoded local images did not load")
+print("Preview: encoded Unicode, spaces and percent characters loaded")
+if let documentPath = ProcessInfo.processInfo.environment["MARKDOWNRE_TEST_DOCUMENT"] {
+    let sample = try DocumentWindow(server: testDelegate.server, url: URL(fileURLWithPath: documentPath))
+    let expected = Int(ProcessInfo.processInfo.environment["MARKDOWNRE_EXPECTED_IMAGES"] ?? "0") ?? 0
+    precondition(expected > 0 && loadedImageCount(sample, expected: expected, timeout: 30) == expected, "Images in the supplied document did not all load")
+    sample.window.performClose(nil)
+    print("Preview: all \(expected) local images in the supplied document loaded")
+}
+
 let imageURL = fixtureURL.deletingLastPathComponent().appendingPathComponent("icon.png")
 try Data(contentsOf: URL(fileURLWithPath: "macos/assets/MarkdownDocument.png")).write(to: imageURL)
 let exportText = "# PDF export validation\n\nFormula: $x^2+y^2=z^2$\n\n| Name | Value |\n|---|---|\n| Example | 42 |\n\n![local image](icon.png)\n\n" + (1...50).map { "## Section \($0)\n\nParagraph with **bold** and `code`.\n\n" }.joined() + "End of exported document."
