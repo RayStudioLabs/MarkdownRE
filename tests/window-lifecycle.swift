@@ -150,7 +150,7 @@ if let documentPath = ProcessInfo.processInfo.environment["MARKDOWNRE_TEST_DOCUM
 
 let imageURL = fixtureURL.deletingLastPathComponent().appendingPathComponent("icon.png")
 try Data(contentsOf: URL(fileURLWithPath: "macos/assets/MarkdownDocument.png")).write(to: imageURL)
-let exportText = "# PDF export validation\n\nFormula: $x^2+y^2=z^2$\n\n| Name | Value |\n|---|---|\n| Example | 42 |\n\n![local image](icon.png)\n\n" + (1...50).map { "## Section \($0)\n\nParagraph with **bold** and `code`.\n\n" }.joined() + "End of exported document."
+let exportText = "# PDF export validation\n\nPath: \"/Users/me/com~apple~CloudDocs\"\n\nFormula: $x^2+y^2=z^2$\n\n| Name | Value |\n|---|---|\n| Example | 42 |\n\n![local image](icon.png)\n\n" + (1...50).map { "## Section \($0)\n\nParagraph with **bold** and `code`.\n\n" }.joined() + "End of exported document."
 startupDocument.send(["type":"document", "text":exportText, "base":testDelegate.server.origin + "doc/\(startupDocument.id)/"])
 let pdfURL = fixtureURL.deletingLastPathComponent().appendingPathComponent("export-check.pdf")
 var exportResult: Bool?
@@ -162,6 +162,7 @@ guard let pdf = PDFDocument(url: pdfURL) else { fatalError("Exported PDF could n
 precondition(pdf.pageCount > 1, "Long document did not paginate")
 let extracted = (0..<pdf.pageCount).compactMap { pdf.page(at: $0)?.string }.joined(separator: "\n")
 precondition(extracted.contains("PDF export validation") && extracted.contains("End of exported document") && extracted.contains("Example"), "Export lost document content")
+precondition(extracted.contains("com~apple~CloudDocs"), "Quoted literal path was altered in PDF export")
 precondition(!extracted.contains("窗口布局和主题"), "Toolbar leaked into export")
 print("PDF export: \(pdf.pageCount) pages, full document and table present")
 func exportTableFixture(_ markdown: String, name: String) -> PDFDocument {

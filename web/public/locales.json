@@ -131,7 +131,8 @@
     "tableContent": "Content",
     "imageDescription": "Image description",
     "imageUrl": "Image URL",
-    "linkText": "Link text"
+    "linkText": "Link text",
+    "helpQuotedStrings": "Text inside paired quotation marks on one line is shown literally; Markdown symbols inside it are not parsed."
   },
   "zh-Hans": {
     "language": "语言",
@@ -265,7 +266,8 @@
     "tableContent": "内容",
     "imageDescription": "图片说明",
     "imageUrl": "图片地址",
-    "linkText": "链接文字"
+    "linkText": "链接文字",
+    "helpQuotedStrings": "同一行内成对引号中的文字按原样显示，内部的 Markdown 符号不作解析。"
   },
   "zh-Hant": {
     "language": "語言",
@@ -399,7 +401,8 @@
     "tableContent": "內容",
     "imageDescription": "圖片說明",
     "imageUrl": "圖片網址",
-    "linkText": "連結文字"
+    "linkText": "連結文字",
+    "helpQuotedStrings": "同一行內成對引號中的文字會依原樣顯示，其中的 Markdown 符號不會被解析。"
   },
   "de": {
     "language": "Sprache",
@@ -533,7 +536,8 @@
     "tableContent": "Inhalt",
     "imageDescription": "Bildbeschreibung",
     "imageUrl": "Bild-URL",
-    "linkText": "Linktext"
+    "linkText": "Linktext",
+    "helpQuotedStrings": "Text in gepaarten Anführungszeichen auf einer Zeile wird wörtlich angezeigt; Markdown-Zeichen darin werden nicht verarbeitet."
   },
   "fr": {
     "language": "Langue",
@@ -667,7 +671,8 @@
     "tableContent": "Contenu",
     "imageDescription": "Description de l’image",
     "imageUrl": "URL de l’image",
-    "linkText": "Texte du lien"
+    "linkText": "Texte du lien",
+    "helpQuotedStrings": "Le texte entre guillemets sur une même ligne est affiché littéralement ; ses symboles Markdown ne sont pas interprétés."
   },
   "es": {
     "language": "Idioma",
@@ -801,7 +806,8 @@
     "tableContent": "Contenido",
     "imageDescription": "Descripción de la imagen",
     "imageUrl": "URL de la imagen",
-    "linkText": "Texto del enlace"
+    "linkText": "Texto del enlace",
+    "helpQuotedStrings": "El texto entre comillas en una misma línea se muestra literalmente; sus símbolos Markdown no se interpretan."
   },
   "ja": {
     "language": "言語",
@@ -935,7 +941,8 @@
     "tableContent": "内容",
     "imageDescription": "画像の説明",
     "imageUrl": "画像の URL",
-    "linkText": "リンクテキスト"
+    "linkText": "リンクテキスト",
+    "helpQuotedStrings": "同じ行の引用符で囲まれた文字列はそのまま表示され、中の Markdown 記号は解析されません。"
   },
   "ko": {
     "language": "언어",
@@ -1069,7 +1076,8 @@
     "tableContent": "내용",
     "imageDescription": "이미지 설명",
     "imageUrl": "이미지 URL",
-    "linkText": "링크 텍스트"
+    "linkText": "링크 텍스트",
+    "helpQuotedStrings": "같은 줄에서 따옴표로 묶인 문자열은 그대로 표시되며, 그 안의 Markdown 기호는 해석하지 않습니다."
   },
   "pt-BR": {
     "language": "Idioma",
@@ -1203,7 +1211,8 @@
     "tableContent": "Conteúdo",
     "imageDescription": "Descrição da imagem",
     "imageUrl": "URL da imagem",
-    "linkText": "Texto do link"
+    "linkText": "Texto do link",
+    "helpQuotedStrings": "O texto entre aspas na mesma linha é exibido literalmente; os símbolos Markdown dentro dele não são interpretados."
   },
   "it": {
     "language": "Lingua",
@@ -1337,6 +1346,7 @@
     "tableContent": "Contenuto",
     "imageDescription": "Descrizione immagine",
     "imageUrl": "URL immagine",
-    "linkText": "Testo del link"
+    "linkText": "Testo del link",
+    "helpQuotedStrings": "Il testo tra virgolette sulla stessa riga viene mostrato letteralmente; i simboli Markdown al suo interno non vengono interpretati."
   }
 }
