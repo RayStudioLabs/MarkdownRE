@@ -1,0 +1,42 @@
+name: Upload tested desktop release assets
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Draft release tag
+        required: true
+        type: string
+      build_run:
+        description: Successful desktop build workflow run ID
+        required: true
+        type: string
+permissions:
+  actions: read
+  contents: write
+jobs:
+  upload:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      BUILD_RUN: ${{ inputs.build_run }}
+    steps:
+      - name: Verify the build and draft release
+        run: |
+          test "$(gh run view "$BUILD_RUN" --repo "$GITHUB_REPOSITORY" --json conclusion --jq .conclusion)" = success
+          test "$(gh run view "$BUILD_RUN" --repo "$GITHUB_REPOSITORY" --json headBranch --jq .headBranch)" = "$RELEASE_TAG"
+          test "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = true
+      - name: Download and upload packages
+        run: |
+          mkdir packages
+          gh run download "$BUILD_RUN" --repo "$GITHUB_REPOSITORY" --name MarkdownRE-windows-latest --dir packages
+          gh run download "$BUILD_RUN" --repo "$GITHUB_REPOSITORY" --name MarkdownRE-ubuntu-24.04 --dir packages
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.dmg' --dir packages
+          cd packages
+          test "$(find . -maxdepth 1 -name '*.dmg' | wc -l)" -eq 1
+          test "$(find . -maxdepth 1 -name '*.exe' | wc -l)" -eq 1
+          test "$(find . -maxdepth 1 -name '*.zip' | wc -l)" -eq 1
+          test "$(find . -maxdepth 1 -name '*.AppImage' | wc -l)" -eq 1
+          test "$(find . -maxdepth 1 -name '*.tar.gz' | wc -l)" -eq 1
+          sha256sum -- *.dmg *.exe *.zip *.AppImage *.tar.gz > SHA256SUMS.txt
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" -- *.exe *.zip *.AppImage *.tar.gz SHA256SUMS.txt
