@@ -4,7 +4,7 @@ MarkdownRE 是 RayStudioLabs 开发的免费开源 Markdown 阅读和编辑器�
 
 [下载测试版](https://github.com/RayStudioLabs/MarkdownRE/releases) · [MIT 许可证](LICENSE) · [第三方声明](THIRD_PARTY_NOTICES.md)
 
-支持 Markdown 预览、Monaco 语法高亮编辑、四种窗口布局、主题、数学公式及 PDF 导出。编辑工具栏提供常用 Markdown 格式快捷按钮，点击即可插入或切换格式，无需记住每种语法。安装包目前提供 macOS Apple Silicon 和 Windows/Linux x64 版本；Windows/Linux 当前发布包由 macOS 交叉构建，尚未在对应系统实机验证。
+支持 Markdown 预览、Monaco 语法高亮编辑、四种窗口布局、主题、数学公式及 PDF 导出。预览区可打开并调整宽度的目录抽屉，按标题层级浏览并跳转到文档相应位置。编辑工具栏提供常用 Markdown 格式快捷按钮，点击即可插入或切换格式，无需记住每种语法。安装包目前提供 macOS Apple Silicon 和 Windows/Linux x64 版本；Windows/Linux 包由对应系统的 GitHub Actions 环境构建并进行自动化测试，尚未在对应系统实机验证。
 
 同一行内用单双引号或中文引号包围的文字在预览中按原样显示，内部的 Markdown 符号不会被解析；引号外仍按正常语法渲染。
 
@@ -48,7 +48,7 @@ open build/MarkdwonRE.app
 验证开发包与安装镜像的标识、图标及签名：
 
 ```sh
-./tests/macos-packaging.sh build/MarkdownRE-0.2.2-arm64.dmg
+./tests/macos-packaging.sh build/MarkdownRE-0.3.0-arm64.dmg
 ```
 
 该检查只挂载镜像到临时目录，不安装或启动应用。

@@ -99,6 +99,16 @@ while previewTitle != "启动测试" && Date() < previewDeadline {
 }
 precondition(previewTitle == "启动测试", "Document preview did not load")
 print("Document preview loaded in \(Int(Date().timeIntervalSince(startTime) * 1000)) ms (off-screen test)")
+var outlineState: [String]?
+var outlineChecked = false
+startupDocument.web.evaluateJavaScript("document.querySelector('#outline-toggle').click(); [document.querySelector('#outline-toggle').getAttribute('aria-expanded'), document.querySelector('.outline-entry')?.textContent || '']") { value, _ in
+    outlineState = value as? [String]
+    outlineChecked = true
+}
+let outlineDeadline = Date(timeIntervalSinceNow: 5)
+while !outlineChecked && Date() < outlineDeadline { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05)) }
+precondition(outlineState == ["true", "启动测试"], "Native preview outline did not open or list the document heading")
+print("Native preview outline: opened and listed the heading")
 let originalLanguage = preferences.string(forKey: "language")
 let choice = NSMenuItem(); choice.representedObject = "ja"
 testDelegate.chooseLanguage(choice)
@@ -164,6 +174,7 @@ let extracted = (0..<pdf.pageCount).compactMap { pdf.page(at: $0)?.string }.join
 precondition(extracted.contains("PDF export validation") && extracted.contains("End of exported document") && extracted.contains("Example"), "Export lost document content")
 precondition(extracted.contains("com~apple~CloudDocs"), "Quoted literal path was altered in PDF export")
 precondition(!extracted.contains("窗口布局和主题"), "Toolbar leaked into export")
+precondition(!extracted.contains("目录"), "Outline leaked into PDF export")
 print("PDF export: \(pdf.pageCount) pages, full document and table present")
 func exportTableFixture(_ markdown: String, name: String) -> PDFDocument {
     startupDocument.send(["type":"document", "text":markdown, "base":testDelegate.server.origin + "doc/\(startupDocument.id)/"])
@@ -195,6 +206,10 @@ func visibleText(_ page: PDFPage) -> String {
     try! VNImageRequestHandler(cgImage: bitmap.cgImage!).perform([request])
     return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
 }
+let revisionPDF = exportTableFixture("# Revision\n\n| Version | Date | Maintainer | Summary |\n|---|---|---|---|\n| **V20261105** | 2026-11-05 | Daichenyu + Codex | Rightmost RIGHTEND |\n", name: "table-column-widths")
+let revisionVisible = (0..<revisionPDF.pageCount).map { visibleText(revisionPDF.page(at: $0)!) }.joined(separator: "\n")
+precondition(revisionVisible.contains("RIGHTEND"), "The rightmost table column was clipped in the PDF")
+print("PDF table width: rightmost column visible")
 let shortPages = (0..<shortPDF.pageCount).map { visibleText(shortPDF.page(at: $0)!) }
 let shortHeaders = shortPages.filter { $0.contains("ShortHeadA") }
 precondition(shortHeaders.count == 1 && shortHeaders[0].contains("ShortRow1") && shortHeaders[0].contains("ShortRow4"), "A page-sized table must remain on one page")

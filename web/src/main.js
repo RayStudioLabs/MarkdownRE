@@ -23,6 +23,8 @@ function applyLanguage(value) {
     if (element.hasAttribute('aria-label')) element.setAttribute('aria-label', text);
     if (element.hasAttribute('title')) element.title = text;
   }
+  for (const element of document.querySelectorAll('[data-i18n-text]')) element.textContent = t(element.dataset.i18nText);
+  updateOutlineUntitled();
   const mac = !window.desktopBridge || window.desktopBridge.platform === 'darwin';
   for (const [id, shortcut] of Object.entries(mac ? {'open-file':'⌘O','save-file':'⌘S',undo:'⌘Z',redo:'⇧⌘Z / ⌘Y'} : {'open-file':'Ctrl+O','save-file':'Ctrl+S',undo:'Ctrl+Z',redo:'Ctrl+Shift+Z / Ctrl+Y'})) {
     const button = document.getElementById(id); button.title += ` (${shortcut})`;
@@ -30,7 +32,7 @@ function applyLanguage(value) {
 }
 applyLanguage(language);
 const initialTheme = normalizeTheme(window.__markdownREInitialTheme);
-const state = {layout:'preview', theme:initialTheme, horizontal:0.5, vertical:0.5, base:'', text:''};
+const state = {layout:'preview', theme:initialTheme, horizontal:0.5, vertical:0.5, base:'', text:'', outlineOpen:false};
 let editor = null, editorModule = null, editorPromise = null;
 let rendererPromise = null, changing = false, renderVersion = 0, syncFrame = 0;
 
@@ -64,6 +66,114 @@ for (const command of ['undo', 'redo']) {
   };
 }
 updateHistoryButtons();
+
+let outlineEntries = [];
+let outlineFrame = 0;
+function updateOutlineUntitled() {
+  for (const entry of document.querySelectorAll('.outline-entry[data-empty]')) entry.textContent = t('outlineUntitled');
+}
+function updateOutlineSelection() {
+  if (!state.outlineOpen || state.layout === 'editor' || !outlineEntries.length) return;
+  const previewTop = $('#preview').getBoundingClientRect().top + 36;
+  let active = 0;
+  const preview = $('#preview');
+  const maxScroll = preview.scrollHeight - preview.clientHeight;
+  if (maxScroll > 0 && preview.scrollTop >= maxScroll - 1) active = outlineEntries.length - 1;
+  else for (let i = 0; i < outlineEntries.length; i++) {
+    if (outlineEntries[i].heading.getBoundingClientRect().top > previewTop) break;
+    active = i;
+  }
+  outlineEntries.forEach((entry, i) => {
+    if (i === active) entry.button.setAttribute('aria-current', 'true');
+    else entry.button.removeAttribute('aria-current');
+  });
+}
+function scheduleOutlineSelection() {
+  if (outlineFrame || !state.outlineOpen || state.layout === 'editor') return;
+  outlineFrame = requestAnimationFrame(() => { outlineFrame = 0; updateOutlineSelection(); });
+}
+function updateOutline() {
+  const list = $('#outline-list');
+  const previousScroll = list.scrollTop;
+  const fragment = document.createDocumentFragment();
+  outlineEntries = Array.from($('#preview').querySelectorAll('h1,h2,h3,h4,h5,h6'), heading => {
+    const button = document.createElement('button');
+    const title = heading.textContent.replace(/\s+/g, ' ').trim();
+    button.type = 'button';
+    button.className = 'outline-entry';
+    button.style.setProperty('--depth', Number(heading.tagName.slice(1)) - 1);
+    button.textContent = title || t('outlineUntitled');
+    if (!title) button.dataset.empty = '';
+    button.title = title;
+    button.addEventListener('click', () => {
+      const preview = $('#preview');
+      preview.scrollTo({top:preview.scrollTop + heading.getBoundingClientRect().top - preview.getBoundingClientRect().top - 12});
+      scheduleOutlineSelection();
+    });
+    fragment.appendChild(button);
+    return {heading, button};
+  });
+  list.replaceChildren(fragment);
+  list.scrollTop = previousScroll;
+  $('#outline-empty').hidden = outlineEntries.length > 0;
+  scheduleOutlineSelection();
+}
+function applyOutline() {
+  const open = state.outlineOpen && state.layout !== 'editor';
+  $('#outline-panel').hidden = !open;
+  $('#outline-splitter').hidden = !open;
+  const toggle = $('#outline-toggle');
+  toggle.disabled = state.layout === 'editor';
+  toggle.classList.toggle('active', open);
+  toggle.setAttribute('aria-expanded', String(open));
+  scheduleOutlineSelection();
+  schedulePreviewSync();
+}
+$('#outline-toggle').onclick = () => { state.outlineOpen = !state.outlineOpen; applyOutline(); };
+$('#outline-close').onclick = () => { state.outlineOpen = false; applyOutline(); $('#outline-toggle').focus(); };
+$('#outline-panel').addEventListener('keydown', event => {
+  if (event.key === 'Escape') { state.outlineOpen = false; applyOutline(); $('#outline-toggle').focus(); }
+});
+const outlineSplitter = $('#outline-splitter');
+const outlinePane = $('#preview-pane');
+const outlinePanel = $('#outline-panel');
+function outlineWidthLimits() {
+  const max = Math.min(480, Math.max(0, outlinePane.clientWidth * 0.6));
+  return {min:Math.min(160, max), max};
+}
+function resizeOutline(width) {
+  const {min, max} = outlineWidthLimits();
+  outlinePane.style.setProperty('--outline-width', `${Math.max(min, Math.min(max, width))}px`);
+  schedulePreviewSync();
+}
+const outlineObserver = new ResizeObserver(() => {
+  if (outlinePanel.hidden) return;
+  const {min, max} = outlineWidthLimits();
+  outlineSplitter.setAttribute('aria-valuemin', String(Math.round(min)));
+  outlineSplitter.setAttribute('aria-valuemax', String(Math.round(max)));
+  outlineSplitter.setAttribute('aria-valuenow', String(Math.round(outlinePanel.getBoundingClientRect().width)));
+});
+outlineObserver.observe(outlinePanel);
+outlineObserver.observe(outlinePane);
+let outlineDrag;
+outlineSplitter.addEventListener('pointerdown', event => {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  outlineDrag = {x:event.clientX, width:outlinePanel.getBoundingClientRect().width};
+  outlineSplitter.setPointerCapture(event.pointerId);
+});
+outlineSplitter.addEventListener('pointermove', event => {
+  if (outlineDrag && outlineSplitter.hasPointerCapture(event.pointerId)) resizeOutline(outlineDrag.width + event.clientX - outlineDrag.x);
+});
+outlineSplitter.addEventListener('lostpointercapture', () => { outlineDrag = null; });
+outlineSplitter.addEventListener('keydown', event => {
+  const {min, max} = outlineWidthLimits();
+  const width = outlinePanel.getBoundingClientRect().width;
+  const next = {ArrowLeft:width - 16, ArrowRight:width + 16, Home:min, End:max}[event.key];
+  if (next !== undefined) { event.preventDefault(); resizeOutline(next); }
+  else if (event.key === 'Escape') { state.outlineOpen = false; applyOutline(); $('#outline-toggle').focus(); }
+});
+$('#preview').addEventListener('scroll', scheduleOutlineSelection, {passive:true});
 
 function schedulePreviewSync() {
   if (!editor || (state.layout !== 'horizontal' && state.layout !== 'vertical') || syncFrame) return;
@@ -103,7 +213,7 @@ function ensureEditor() {
 async function render(text) {
   const version = ++renderVersion;
   const preview = $('#preview');
-  if (!text) { preview.replaceChildren(); return; }
+  if (!text) { preview.replaceChildren(); updateOutline(); return; }
   try {
     rendererPromise ||= import('./render.js');
     const {renderMarkdown} = await rendererPromise;
@@ -115,10 +225,11 @@ async function render(text) {
       if (src) image.src = localImageURL(state.base, src);
       image.referrerPolicy = 'no-referrer';
     }
+    updateOutline();
     schedulePreviewSync();
   } catch (error) {
     rendererPromise = null;
-    if (version === renderVersion) preview.textContent = `${t('renderFailed')}: ${error.message}`;
+    if (version === renderVersion) { preview.textContent = `${t('renderFailed')}: ${error.message}`; updateOutline(); }
   }
 }
 
@@ -200,6 +311,7 @@ function applyLayout(layout) {
   $('#markdown-actions').hidden = layout === 'preview';
   const workspace=$('#workspace'); workspace.dataset.layout=layout;
   workspace.style.setProperty('--ratio', `${(layout==='vertical'?state.vertical:state.horizontal)*100}%`);
+  applyOutline();
   document.querySelectorAll('[data-layout]').forEach(button => { const active = button.dataset.layout === layout; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   if (layout !== 'preview') {
     ensureEditor().then(instance => { if (state.layout !== 'preview') { instance.layout(); schedulePreviewSync(); } }).catch(() => {});

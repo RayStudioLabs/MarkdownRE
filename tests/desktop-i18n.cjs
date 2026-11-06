@@ -35,6 +35,7 @@ const dictionaries = require('../web/public/locales.json');
       await second.waitForFunction(expected => document.documentElement.lang === expected, locale);
       await about.waitForFunction(expected => document.documentElement.lang === expected, locale);
       assert.equal(await page.locator('#open-file').getAttribute('aria-label'), dict.openFile, locale);
+      assert.equal(await page.locator('#outline-toggle').getAttribute('aria-label'), dict.outline, locale);
       assert.equal(await help.locator('h1').textContent(), dict.syntax, locale);
       assert.equal(await about.locator('#detail').textContent(), dict.aboutDetail, locale);
       assert.equal(await second.locator('#open-file').getAttribute('aria-label'), dict.openFile, locale);

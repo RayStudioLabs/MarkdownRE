@@ -24,8 +24,10 @@ import icon24 from 'lucide-static/icons/rows-2.svg?raw';
 import icon25 from 'lucide-static/icons/pencil.svg?raw';
 import icon26 from 'lucide-static/icons/sun.svg?raw';
 import icon27 from 'lucide-static/icons/moon.svg?raw';
+import icon28 from 'lucide-static/icons/list-tree.svg?raw';
+import icon29 from 'lucide-static/icons/x.svg?raw';
 
-const icons = {'heading-1':icon0, 'heading-2':icon1, 'heading-3':icon2, 'bold':icon3, 'italic':icon4, 'strikethrough':icon5, 'code':icon6, 'link':icon8, 'image':icon9, 'quote':icon10, 'list':icon11, 'list-ordered':icon12, 'list-todo':icon13, 'square-code':icon14, 'table':icon16, 'minus':icon17, 'folder-open':icon18, 'save':icon19, 'undo-2':icon20, 'redo-2':icon21, 'eye':icon22, 'columns-2':icon23, 'rows-2':icon24, 'pencil':icon25, 'sun':icon26, 'moon':icon27};
+const icons = {'heading-1':icon0, 'heading-2':icon1, 'heading-3':icon2, 'bold':icon3, 'italic':icon4, 'strikethrough':icon5, 'code':icon6, 'link':icon8, 'image':icon9, 'quote':icon10, 'list':icon11, 'list-ordered':icon12, 'list-todo':icon13, 'square-code':icon14, 'table':icon16, 'minus':icon17, 'folder-open':icon18, 'save':icon19, 'undo-2':icon20, 'redo-2':icon21, 'eye':icon22, 'columns-2':icon23, 'rows-2':icon24, 'pencil':icon25, 'sun':icon26, 'moon':icon27, 'list-tree':icon28, 'x':icon29};
 
 export function renderIcons() {
   for (const element of document.querySelectorAll('[data-icon]')) {

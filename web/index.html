@@ -61,7 +61,19 @@
     <div id="workspace">
       <div id="editor"></div>
       <div id="splitter"></div>
-      <main id="preview"></main>
+      <div id="preview-pane">
+        <button type="button" id="outline-toggle" class="icon-button" title="目录" aria-label="目录" aria-expanded="false" aria-controls="outline-panel" data-icon="list-tree" data-i18n="outline"></button>
+        <aside id="outline-panel" hidden aria-label="目录" data-i18n="outline">
+          <div class="outline-header">
+            <span data-i18n-text="outline">目录</span>
+            <button type="button" id="outline-close" class="icon-button" title="收起目录" aria-label="收起目录" data-icon="x" data-i18n="outlineClose"></button>
+          </div>
+          <nav id="outline-list" aria-label="目录" data-i18n="outline"></nav>
+          <p id="outline-empty" data-i18n-text="outlineEmpty">没有标题</p>
+        </aside>
+        <div id="outline-splitter" hidden role="separator" aria-label="目录" data-i18n="outline" aria-orientation="vertical" aria-controls="outline-panel" tabindex="0"></div>
+        <main id="preview"></main>
+      </div>
     </div>
   </div>
   <script type="module" src="/src/main.js"></script>
