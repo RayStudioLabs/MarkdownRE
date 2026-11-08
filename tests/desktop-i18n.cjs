@@ -40,6 +40,17 @@ const dictionaries = require('../web/public/locales.json');
       assert.equal(await about.locator('#detail').textContent(), dict.aboutDetail, locale);
       assert.equal(await second.locator('#open-file').getAttribute('aria-label'), dict.openFile, locale);
       assert.equal(await app.evaluate(({Menu}) => Menu.getApplicationMenu().getMenuItemById('file').label), dict.file, locale);
+      if (process.platform === 'win32') assert.equal(await app.evaluate(({Menu}) => Menu.getApplicationMenu().getMenuItemById('defaultApp').label), dict.defaultApp, locale);
+    }
+    if (process.platform === 'win32') {
+      await app.evaluate(({dialog,shell,Menu}) => {
+        globalThis.__defaultSettingsURLs=[];
+        dialog.showMessageBox=async()=>({response:1});
+        shell.openExternal=async url=>{globalThis.__defaultSettingsURLs.push(url);};
+        Menu.getApplicationMenu().getMenuItemById('defaultApp').click();
+      });
+      await page.waitForTimeout(100);
+      assert.deepEqual(await app.evaluate(()=>globalThis.__defaultSettingsURLs),['ms-settings:defaultapps']);
     }
     await app.evaluate(({Menu}) => Menu.getApplicationMenu().getMenuItemById('language-ja').click());
     await page.waitForFunction(() => document.documentElement.lang === 'ja');

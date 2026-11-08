@@ -48,7 +48,7 @@ open build/MarkdwonRE.app
 验证开发包与安装镜像的标识、图标及签名：
 
 ```sh
-./tests/macos-packaging.sh build/MarkdownRE-0.3.0-arm64.dmg
+./tests/macos-packaging.sh build/MarkdownRE-0.4.0-arm64.dmg
 ```
 
 该检查只挂载镜像到临时目录，不安装或启动应用。
@@ -88,7 +88,7 @@ npm run dist:portable
 
 产物位于 `release/`。Windows ZIP 解压后运行 `MarkdownRE.exe`；Linux tar.gz 解压后运行 `./markdownre`。Linux 需要桌面图形环境和 Chromium 依赖（GTK、NSS、ALSA 等），tar.gz 不是完全静态程序。AppImage 在部分系统还需 FUSE 支持。默认构建没有代码签名。
 
-Windows NSIS 安装程序提供 Markdown 文件类型和 MR 文档图标；如系统已有默认应用，需在 Windows 默认应用设置中选择 MarkdownRE。ZIP 便携版不会安装文件关联。
+Windows 安装程序文件名包含 `install`，会注册 Markdown 文件类型及 MR 文档图标。安装完成页默认勾选打开 Windows 默认应用设置；在系统设置中搜索 `.md` 并选择 MarkdownRE，即可完成默认应用设置。安装后也可以从「文件 → 设置为 .md 的默认应用」打开系统设置。ZIP 便携版不会注册文件关联。
 
 Linux 桌面环境的文档图标按 MIME 类型和图标主题决定，并不一定跟随默认打开程序。需要 MR 文档图标时，可主动运行源码中的 `desktop/assets/install-linux-document-icons.sh install`；tar.gz 解压版中对应脚本位于 `resources/markdown-document-icons/`。该操作只修改当前用户的 `text/markdown` 图标，可能影响所有 Markdown 文件，即使以后更换默认应用。运行同一脚本的 `uninstall` 可移除这些图标；脚本会拒绝覆盖已有的不同用户图标。部分图标主题或文件管理器的缩略图预览可能优先显示其他图像，可能需要刷新文件管理器。
 

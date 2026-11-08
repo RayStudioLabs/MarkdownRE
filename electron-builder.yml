@@ -20,6 +20,9 @@ win:
     - nsis
     - zip
 nsis:
+  artifactName: '${productName}-${version}-win-${arch}-install.${ext}'
+  include: desktop/windows/installer.nsh
+  installerLanguages: [en_US, zh_CN, zh_TW, de_DE, fr_FR, es_ES, ja_JP, ko_KR, pt_BR, it_IT]
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
@@ -38,13 +41,13 @@ linux:
     - AppImage
     - tar.gz
   executableName: markdownre
+  fileAssociations:
+    - ext: md
+      name: MarkdownRE.Markdown
+      description: Markdown document
+      mimeType: text/markdown
+      icon: desktop/assets/MarkdownDocument.ico
+      role: Editor
   desktop:
     entry:
       MimeType: text/markdown;text/plain;
-fileAssociations:
-  - ext: md
-    name: MarkdownRE.Markdown
-    description: Markdown document
-    mimeType: text/markdown
-    icon: desktop/assets/MarkdownDocument.ico
-    role: Editor

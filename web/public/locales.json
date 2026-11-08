@@ -136,7 +136,10 @@
     "outline": "Outline",
     "outlineClose": "Close outline",
     "outlineEmpty": "No headings",
-    "outlineUntitled": "Untitled heading"
+    "outlineUntitled": "Untitled heading",
+    "windowsDefaultHint": "In Windows Settings, search for .md and select MarkdownRE. If it is not listed, install the Windows version first.",
+    "windowsDefaultOpen": "Open Settings",
+    "windowsDefaultFailed": "Could not open Windows Settings."
   },
   "zh-Hans": {
     "language": "语言",
@@ -275,7 +278,10 @@
     "outline": "目录",
     "outlineClose": "收起目录",
     "outlineEmpty": "没有标题",
-    "outlineUntitled": "无标题"
+    "outlineUntitled": "无标题",
+    "windowsDefaultHint": "在 Windows 设置中搜索 .md，然后选择 MarkdownRE。如果列表中没有 MarkdownRE，请先安装 Windows 版。",
+    "windowsDefaultOpen": "打开设置",
+    "windowsDefaultFailed": "无法打开 Windows 设置。"
   },
   "zh-Hant": {
     "language": "語言",
@@ -414,7 +420,10 @@
     "outline": "目錄",
     "outlineClose": "收合目錄",
     "outlineEmpty": "沒有標題",
-    "outlineUntitled": "無標題"
+    "outlineUntitled": "無標題",
+    "windowsDefaultHint": "在 Windows 設定中搜尋 .md，然後選擇 MarkdownRE。如果清單中沒有 MarkdownRE，請先安裝 Windows 版。",
+    "windowsDefaultOpen": "開啟設定",
+    "windowsDefaultFailed": "無法開啟 Windows 設定。"
   },
   "de": {
     "language": "Sprache",
@@ -553,7 +562,10 @@
     "outline": "Inhaltsverzeichnis",
     "outlineClose": "Inhaltsverzeichnis schließen",
     "outlineEmpty": "Keine Überschriften",
-    "outlineUntitled": "Überschrift ohne Titel"
+    "outlineUntitled": "Überschrift ohne Titel",
+    "windowsDefaultHint": "Suchen Sie in den Windows-Einstellungen nach .md und wählen Sie MarkdownRE. Falls es nicht aufgeführt ist, installieren Sie zuerst die Windows-Version.",
+    "windowsDefaultOpen": "Einstellungen öffnen",
+    "windowsDefaultFailed": "Windows-Einstellungen konnten nicht geöffnet werden."
   },
   "fr": {
     "language": "Langue",
@@ -692,7 +704,10 @@
     "outline": "Sommaire",
     "outlineClose": "Fermer le sommaire",
     "outlineEmpty": "Aucun titre",
-    "outlineUntitled": "Titre sans texte"
+    "outlineUntitled": "Titre sans texte",
+    "windowsDefaultHint": "Dans les paramètres Windows, recherchez .md et choisissez MarkdownRE. S’il ne figure pas dans la liste, installez d’abord la version Windows.",
+    "windowsDefaultOpen": "Ouvrir les paramètres",
+    "windowsDefaultFailed": "Impossible d’ouvrir les paramètres Windows."
   },
   "es": {
     "language": "Idioma",
@@ -831,7 +846,10 @@
     "outline": "Índice",
     "outlineClose": "Cerrar índice",
     "outlineEmpty": "Sin títulos",
-    "outlineUntitled": "Título sin texto"
+    "outlineUntitled": "Título sin texto",
+    "windowsDefaultHint": "En Configuración de Windows, busca .md y selecciona MarkdownRE. Si no aparece, instala primero la versión para Windows.",
+    "windowsDefaultOpen": "Abrir Configuración",
+    "windowsDefaultFailed": "No se pudo abrir Configuración de Windows."
   },
   "ja": {
     "language": "言語",
@@ -970,7 +988,10 @@
     "outline": "目次",
     "outlineClose": "目次を閉じる",
     "outlineEmpty": "見出しがありません",
-    "outlineUntitled": "無題の見出し"
+    "outlineUntitled": "無題の見出し",
+    "windowsDefaultHint": "Windows の設定で .md を検索し、MarkdownRE を選択してください。表示されない場合は、Windows 版を先にインストールしてください。",
+    "windowsDefaultOpen": "設定を開く",
+    "windowsDefaultFailed": "Windows の設定を開けませんでした。"
   },
   "ko": {
     "language": "언어",
@@ -1109,7 +1130,10 @@
     "outline": "목차",
     "outlineClose": "목차 닫기",
     "outlineEmpty": "제목이 없습니다",
-    "outlineUntitled": "제목 없는 항목"
+    "outlineUntitled": "제목 없는 항목",
+    "windowsDefaultHint": "Windows 설정에서 .md를 검색하고 MarkdownRE를 선택하세요. 목록에 없으면 Windows 버전을 먼저 설치하세요.",
+    "windowsDefaultOpen": "설정 열기",
+    "windowsDefaultFailed": "Windows 설정을 열 수 없습니다."
   },
   "pt-BR": {
     "language": "Idioma",
@@ -1248,7 +1272,10 @@
     "outline": "Sumário",
     "outlineClose": "Fechar sumário",
     "outlineEmpty": "Nenhum título",
-    "outlineUntitled": "Título sem texto"
+    "outlineUntitled": "Título sem texto",
+    "windowsDefaultHint": "Nas Configurações do Windows, procure .md e selecione MarkdownRE. Se ele não aparecer, instale primeiro a versão para Windows.",
+    "windowsDefaultOpen": "Abrir Configurações",
+    "windowsDefaultFailed": "Não foi possível abrir as Configurações do Windows."
   },
   "it": {
     "language": "Lingua",
@@ -1387,6 +1414,9 @@
     "outline": "Sommario",
     "outlineClose": "Chiudi sommario",
     "outlineEmpty": "Nessun titolo",
-    "outlineUntitled": "Titolo senza testo"
+    "outlineUntitled": "Titolo senza testo",
+    "windowsDefaultHint": "Nelle impostazioni di Windows, cerca .md e seleziona MarkdownRE. Se non compare, installa prima la versione per Windows.",
+    "windowsDefaultOpen": "Apri impostazioni",
+    "windowsDefaultFailed": "Impossibile aprire le impostazioni di Windows."
   }
 }

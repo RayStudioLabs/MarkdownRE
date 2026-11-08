@@ -33,6 +33,9 @@ jobs:
       - run: ${{ matrix.command }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tests/windows-installer.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: MarkdownRE-${{ matrix.os }}
