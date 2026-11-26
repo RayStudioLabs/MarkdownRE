@@ -149,7 +149,12 @@
     "closeFind": "Close find",
     "replace": "Replace",
     "replaceAll": "Replace all",
-    "invalidRegex": "Invalid expression"
+    "invalidRegex": "Invalid expression",
+    "windowMenu": "Window",
+    "closeDocument": "Close Document",
+    "noOpenDocuments": "No Open Documents",
+    "reloadDocument": "Reload from disk",
+    "confirmReload": "Discard unsaved changes and reload this document from disk?"
   },
   "zh-Hans": {
     "language": "语言",
@@ -301,7 +306,12 @@
     "closeFind": "关闭查找",
     "replace": "替换",
     "replaceAll": "全部替换",
-    "invalidRegex": "正则表达式无效"
+    "invalidRegex": "正则表达式无效",
+    "windowMenu": "窗口",
+    "closeDocument": "关闭文档",
+    "noOpenDocuments": "没有打开的文档",
+    "reloadDocument": "从磁盘刷新",
+    "confirmReload": "放弃未保存的修改，重新加载磁盘上的文档吗？"
   },
   "zh-Hant": {
     "language": "語言",
@@ -453,7 +463,12 @@
     "closeFind": "關閉尋找",
     "replace": "取代",
     "replaceAll": "全部取代",
-    "invalidRegex": "正規表示式無效"
+    "invalidRegex": "正規表示式無效",
+    "windowMenu": "視窗",
+    "closeDocument": "關閉文件",
+    "noOpenDocuments": "沒有開啟的文件",
+    "reloadDocument": "從磁碟重新載入",
+    "confirmReload": "要放棄未儲存的修改，重新載入磁碟上的文件嗎？"
   },
   "de": {
     "language": "Sprache",
@@ -605,7 +620,12 @@
     "closeFind": "Suche schließen",
     "replace": "Ersetzen",
     "replaceAll": "Alle ersetzen",
-    "invalidRegex": "Ungültiger Ausdruck"
+    "invalidRegex": "Ungültiger Ausdruck",
+    "windowMenu": "Fenster",
+    "closeDocument": "Dokument schließen",
+    "noOpenDocuments": "Keine geöffneten Dokumente",
+    "reloadDocument": "Datei neu laden",
+    "confirmReload": "Ungespeicherte Änderungen verwerfen und die Datei neu laden?"
   },
   "fr": {
     "language": "Langue",
@@ -757,7 +777,12 @@
     "closeFind": "Fermer la recherche",
     "replace": "Remplacer",
     "replaceAll": "Tout remplacer",
-    "invalidRegex": "Expression non valide"
+    "invalidRegex": "Expression non valide",
+    "windowMenu": "Fenêtre",
+    "closeDocument": "Fermer le document",
+    "noOpenDocuments": "Aucun document ouvert",
+    "reloadDocument": "Recharger le fichier",
+    "confirmReload": "Abandonner les modifications non enregistrées et recharger le fichier ?"
   },
   "es": {
     "language": "Idioma",
@@ -909,7 +934,12 @@
     "closeFind": "Cerrar búsqueda",
     "replace": "Reemplazar",
     "replaceAll": "Reemplazar todo",
-    "invalidRegex": "Expresión no válida"
+    "invalidRegex": "Expresión no válida",
+    "windowMenu": "Ventana",
+    "closeDocument": "Cerrar documento",
+    "noOpenDocuments": "No hay documentos abiertos",
+    "reloadDocument": "Volver a cargar el archivo",
+    "confirmReload": "¿Descartar los cambios sin guardar y volver a cargar el archivo?"
   },
   "ja": {
     "language": "言語",
@@ -1061,7 +1091,12 @@
     "closeFind": "検索を閉じる",
     "replace": "置換",
     "replaceAll": "すべて置換",
-    "invalidRegex": "正規表現が無効です"
+    "invalidRegex": "正規表現が無効です",
+    "windowMenu": "ウインドウ",
+    "closeDocument": "書類を閉じる",
+    "noOpenDocuments": "開いている書類はありません",
+    "reloadDocument": "ディスクから再読み込み",
+    "confirmReload": "未保存の変更を破棄して、ディスクから書類を再読み込みしますか？"
   },
   "ko": {
     "language": "언어",
@@ -1213,7 +1248,12 @@
     "closeFind": "찾기 닫기",
     "replace": "바꾸기",
     "replaceAll": "모두 바꾸기",
-    "invalidRegex": "잘못된 정규식"
+    "invalidRegex": "잘못된 정규식",
+    "windowMenu": "윈도우",
+    "closeDocument": "문서 닫기",
+    "noOpenDocuments": "열린 문서 없음",
+    "reloadDocument": "디스크에서 다시 불러오기",
+    "confirmReload": "저장하지 않은 변경 사항을 버리고 디스크에서 문서를 다시 불러올까요?"
   },
   "pt-BR": {
     "language": "Idioma",
@@ -1365,7 +1405,12 @@
     "closeFind": "Fechar pesquisa",
     "replace": "Substituir",
     "replaceAll": "Substituir tudo",
-    "invalidRegex": "Expressão inválida"
+    "invalidRegex": "Expressão inválida",
+    "windowMenu": "Janela",
+    "closeDocument": "Fechar documento",
+    "noOpenDocuments": "Nenhum documento aberto",
+    "reloadDocument": "Recarregar do disco",
+    "confirmReload": "Descartar as alterações não salvas e recarregar o documento do disco?"
   },
   "it": {
     "language": "Lingua",
@@ -1517,6 +1562,11 @@
     "closeFind": "Chiudi ricerca",
     "replace": "Sostituisci",
     "replaceAll": "Sostituisci tutto",
-    "invalidRegex": "Espressione non valida"
+    "invalidRegex": "Espressione non valida",
+    "windowMenu": "Finestra",
+    "closeDocument": "Chiudi documento",
+    "noOpenDocuments": "Nessun documento aperto",
+    "reloadDocument": "Ricarica dal disco",
+    "confirmReload": "Scartare le modifiche non salvate e ricaricare il documento dal disco?"
   }
 }

@@ -61,6 +61,15 @@ function updateFormatButtons() {
   });
 }
 $('#open-file').onclick = () => bridge('openDocument');
+const reloadButton = $('#reload-file');
+reloadButton.onclick = () => {
+  if (reloadButton.disabled) return;
+  // Keep the buffer the user is confirming stable while the native dialog
+  // and disk read are pending. Native messages still reach this window.
+  $('#app').inert = true;
+  reloadButton.disabled = true;
+  bridge('reloadDocument');
+};
 $('#save-file').onclick = () => bridge('saveDocument');
 for (const command of ['undo', 'redo']) {
   $(`#${command}`).onclick = () => {
@@ -362,6 +371,7 @@ $('#preview').addEventListener('click',event=>{const link=event.target.closest('
 window.receiveNative = (message) => {
   if(message.type==='find') find.open();
   if(message.type==='document') {
+    reloadButton.disabled = !message.hasFile;
     find.close(false);
     find.contentChanged();
     state.text = message.text || ''; state.base=message.base || '';
@@ -371,8 +381,29 @@ window.receiveNative = (message) => {
     // The lightweight toolbar is now ready; document rendering continues independently.
     bridge('displayReady');
   }
-  if(message.type==='edit' && editor && ['undo','redo'].includes(message.command)) {editor.focus();editor.trigger('native-menu',message.command,null);updateHistoryAfterChange();}
-  if(message.type==='documentBase') {state.base=message.base || ''; render(state.text);}
+  if (message.type === 'reloadFinished') {
+    $('#app').inert = false;
+    reloadButton.disabled = !message.hasFile;
+    reloadButton.focus({preventScroll:true});
+    if (typeof message.text === 'string') {
+      if (state.text !== message.text) {
+        state.text = message.text;
+        if (editor) {
+          const selection = editor.getSelection(), scrollTop = editor.getScrollTop();
+          changing = true;
+          try {
+            editor.setValue(state.text);
+            if (selection) editor.setSelection(selection);
+            editor.setScrollTop(scrollTop);
+          } finally { changing = false; }
+        }
+        find.contentChanged();
+      }
+      render(state.text);
+    }
+  }
+  if(message.type==='edit' && !$('#app').inert && editor && ['undo','redo'].includes(message.command)) {editor.focus();editor.trigger('native-menu',message.command,null);updateHistoryAfterChange();}
+  if(message.type==='documentBase') {reloadButton.disabled = false; state.base=message.base || ''; render(state.text);}
   if(message.type==='preferences') {applyLanguage(message.language);state.horizontal=message.horizontal || 0.5;state.vertical=message.vertical || 0.5;applyTheme(message.theme);applyLayout(state.layout);}
   if(message.type==='language') applyLanguage(message.language);
   if(message.type==='theme') applyTheme(message.theme);

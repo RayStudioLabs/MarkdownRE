@@ -13,6 +13,7 @@ const dictionaries = require('../web/public/locales.json');
   try {
     let page = await app.firstWindow();
     await page.waitForSelector('#toolbar');
+    assert(await page.locator('#reload-file').isDisabled());
     const secondWindow = app.waitForEvent('window');
     await app.evaluate(({Menu}) => Menu.getApplicationMenu().getMenuItemById('newDocument').click());
     const second = await secondWindow;
@@ -40,6 +41,12 @@ const dictionaries = require('../web/public/locales.json');
       assert.equal(await about.locator('#detail').textContent(), dict.aboutDetail, locale);
       assert.equal(await second.locator('#open-file').getAttribute('aria-label'), dict.openFile, locale);
       assert.equal(await app.evaluate(({Menu}) => Menu.getApplicationMenu().getMenuItemById('file').label), dict.file, locale);
+      const windowMenu = await app.evaluate(({Menu}) => {
+        const item = Menu.getApplicationMenu().getMenuItemById('windowMenu');
+        return {label:item.label, names:item.submenu.items.filter(entry => entry.type === 'checkbox').map(entry => entry.label)};
+      });
+      assert.equal(windowMenu.label, dict.windowMenu);
+      assert.deepEqual(windowMenu.names, [`${dict.untitled}.md (1)`, `${dict.untitled}.md (2)`]);
       if (process.platform === 'win32') assert.equal(await app.evaluate(({Menu}) => Menu.getApplicationMenu().getMenuItemById('defaultApp').label), dict.defaultApp, locale);
     }
     if (process.platform === 'win32') {
@@ -52,6 +59,40 @@ const dictionaries = require('../web/public/locales.json');
       await page.waitForTimeout(100);
       assert.deepEqual(await app.evaluate(()=>globalThis.__defaultSettingsURLs),['ms-settings:defaultapps']);
     }
+    const firstId = await (await app.browserWindow(page)).evaluate(win => win.id);
+    const secondId = await (await app.browserWindow(second)).evaluate(win => win.id);
+    await app.evaluate(({Menu}, id) => Menu.getApplicationMenu().getMenuItemById(`window-${id}`).click(), secondId);
+    assert(await app.evaluate(({Menu}, id) => Menu.getApplicationMenu().getMenuItemById(`window-${id}`).checked, secondId));
+    await second.locator('button[data-layout=editor]').click();
+    await second.locator('.monaco-editor .view-lines').click();
+    await second.keyboard.insertText('keep this change');
+    await app.evaluate(({Menu, dialog}, id) => {
+      Menu.getApplicationMenu().getMenuItemById(`window-${id}`).click();
+      globalThis.windowPrompt = new Promise(resolve => {
+        dialog.showMessageBox = async target => { resolve(target.id); return {response:1}; };
+      });
+    }, firstId);
+    await app.evaluate(({Menu}, id) => Menu.getApplicationMenu().getMenuItemById(`close-window-${id}`).click(), secondId);
+    assert.equal(await app.evaluate(() => globalThis.windowPrompt), secondId);
+    assert(!second.isClosed());
+    const closed = second.waitForEvent('close');
+    await app.evaluate(({Menu, dialog}, id) => {
+      dialog.showMessageBox = async () => ({response:2});
+      Menu.getApplicationMenu().getMenuItemById(`close-window-${id}`).click();
+    }, secondId);
+    await closed;
+    assert(!page.isClosed());
+    assert.equal(await app.evaluate(({Menu}, id) => !!Menu.getApplicationMenu().getMenuItemById(`window-${id}`), secondId), false);
+    const savedFile = path.join(dir, 'saved.md');
+    await app.evaluate(({dialog}, filePath) => {
+      dialog.showSaveDialog = async () => ({canceled:false, filePath});
+    }, savedFile);
+    await page.locator('button[data-layout=editor]').click();
+    await page.locator('#save-file').click();
+    await page.waitForFunction(() => !document.querySelector('#reload-file').disabled);
+    await fs.writeFile(savedFile, '# First save');
+    await page.locator('#reload-file').click();
+    await page.waitForFunction(() => document.querySelector('#preview h1')?.textContent === 'First save');
     await app.evaluate(({Menu}) => Menu.getApplicationMenu().getMenuItemById('language-ja').click());
     await page.waitForFunction(() => document.documentElement.lang === 'ja');
     await new Promise(resolve => setTimeout(resolve, 300));

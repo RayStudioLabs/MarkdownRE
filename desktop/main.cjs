@@ -49,7 +49,7 @@ async function choosePDFExport(doc){
   if(!result.canceled&&result.filePath)await exportPDF(doc,result.filePath);
 }
 async function save(doc,saveAs=false) {
-  if(doc.saving)return false;doc.saving=true;
+  if(doc.saving || doc.reloading)return false;doc.saving=true;
   try {
     const text=await snapshot(doc);doc.text=text;
     let file=doc.file;
@@ -57,9 +57,36 @@ async function save(doc,saveAs=false) {
     const current=await fileHash(file);
     if(file===doc.file&&current!==doc.format.hash){const r=await dialog.showMessageBox(doc.win,{type:'warning',message:t('changedOrDeleted'),buttons:[t('cancel'),t('overwrite')],defaultId:0,cancelId:0});if(r.response!==1)return false;}
     const data=encodeDocument(text,doc.format);const hash=await atomicSave(file,data,current);
+    const renamed = doc.file !== file;
     doc.file=file;doc.savedText=text;doc.format.hash=hash;updateTitle(doc);app.addRecentDocument(file);
+    if (renamed) makeMenu();
     send(doc,{type:'documentBase',base:`markdownre://document/${doc.token}/`});return true;
   } catch(error){await errorBox(doc,error);return false;} finally{doc.saving=false;}
+}
+async function reloadDocument(doc) {
+  if (doc.reloading) return;
+  const result = {type:'reloadFinished', hasFile:!!doc.file};
+  if (!doc.file || doc.saving || doc.closing) { send(doc, result); return; }
+  doc.reloading = true;
+  try {
+    if (doc.text !== doc.savedText) {
+      const choice = await dialog.showMessageBox(doc.win, {
+        type:'warning', message:t('confirmReload'), buttons:[t('cancel'), t('reloadDocument')], defaultId:0, cancelId:0
+      });
+      if (choice.response !== 1) return;
+    }
+    const format = decodeDocument(await fs.readFile(doc.file));
+    doc.format = format;
+    doc.text = format.text;
+    doc.savedText = format.text;
+    result.text = format.text;
+    updateTitle(doc);
+  } catch (error) {
+    await errorBox(doc, error);
+  } finally {
+    doc.reloading = false;
+    send(doc, result);
+  }
 }
 async function confirmClose(doc){
   try {doc.text=await snapshot(doc);updateTitle(doc);}catch(error){await errorBox(doc,error);return false;}
@@ -69,7 +96,7 @@ async function confirmClose(doc){
 }
 async function openDocument(file){
   try {
-    if(file){file=await fs.realpath(file);const existing=[...documents.values()].find(d=>d.file===file);if(existing){existing.win.focus();return;}}
+    if(file){file=await fs.realpath(file);const existing=[...documents.values()].find(d=>d.file===file);if(existing){focusDocument(existing);return;}}
     const format=file?decodeDocument(await fs.readFile(file)):{text:'',encoding:'utf8',bom:false,newline:'\n',hash:null};
     const win=new BrowserWindow({width:1100,height:750,minWidth:600,minHeight:400,show:false,backgroundColor:'#fdf6e3',icon:path.join(__dirname,'../macos/assets/MarkdownRE.png'),webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});
     const doc={win,file,format,text:format.text,savedText:format.text,token:randomUUID(),requests:new Map(),closing:false,ready:false};documents.set(win.webContents.id,doc);updateTitle(doc);
@@ -78,9 +105,10 @@ async function openDocument(file){
     win.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
     win.webContents.session.setPermissionCheckHandler(()=>false);
     win.webContents.on('render-process-gone',()=>{if(!win.isDestroyed()){win.show();void errorBox(doc,new Error(t('editorStopped')));}});
-    win.on('close',event=>{if(doc.allowClose)return;event.preventDefault();if(doc.closing)return;doc.closing=true;void confirmClose(doc).then(ok=>{doc.closing=false;if(ok){doc.allowClose=true;win.close();}});});
+    win.on('close',event=>{if(doc.allowClose)return;event.preventDefault();if(doc.closing || doc.reloading)return;doc.closing=true;void confirmClose(doc).then(ok=>{doc.closing=false;if(ok){doc.allowClose=true;win.close();}});});
     const contentsId=win.webContents.id;
-    win.on('closed',()=>documents.delete(contentsId));
+    win.on('closed',()=>{ documents.delete(contentsId); makeMenu(); });
+    makeMenu();
     await win.loadURL(UI);win.show();if(file)app.addRecentDocument(file);
   }catch(error){dialog.showErrorBox(t('openFailed'),localizedError(error));}
 }
@@ -122,11 +150,49 @@ function showAbout() {
   const query = new URLSearchParams({lang:resolveLanguage(preferences.language),version:app.getVersion(),theme:preferences.theme});
   void win.loadURL(`markdownre://ui/about.html?${query}`);
 }
+function focusDocument(doc) {
+  if (doc.win.isMinimized()) doc.win.restore();
+  doc.win.show();
+  doc.win.focus();
+}
+function updateWindowChecks(win) {
+  const menu = Menu.getApplicationMenu()?.getMenuItemById('windowMenu')?.submenu;
+  if (!menu) return;
+  for (const item of menu.items) {
+    if (item.type === 'checkbox') item.checked = item.id === `window-${win?.id}`;
+  }
+}
+app.on('browser-window-focus', (_event, win) => updateWindowChecks(win));
+
+function documentMenuItems() {
+  const docs = [...documents.values()];
+  if (!docs.length) return [{label:t('noOpenDocuments'), enabled:false}];
+  const names = docs.map(doc => doc.file ? path.basename(doc.file) : `${t('untitled')}.md`);
+  const closeItems = [];
+  const items = docs.map((doc, index) => {
+    let label = names[index];
+    if (names.indexOf(label) !== names.lastIndexOf(label)) label = doc.file || `${label} (${index + 1})`;
+    if (process.platform !== 'darwin') label = label.replaceAll('&', '&&');
+    const win = doc.win;
+    closeItems.push({label, id:`close-window-${win.id}`, click:() => {
+      if (win.isDestroyed()) return;
+      focusDocument(doc);
+      win.close();
+    }});
+    return {label, id:`window-${win.id}`, type:'checkbox', checked:win.isFocused(), click:() => {
+      if (win.isDestroyed()) return;
+      focusDocument(doc);
+      updateWindowChecks(win);
+    }};
+  });
+  return [...items, {type:'separator'}, {label:t('closeDocument'), submenu:closeItems}];
+}
 function makeMenu(){Menu.setApplicationMenu(Menu.buildFromTemplate([
  ...(process.platform==='darwin'?[{role:'appMenu'}]:[]),
  {id:'file',label:t('file'),submenu:[{id:'newDocument',label:t('new'),accelerator:'CmdOrCtrl+N',click:()=>openDocument()},{label:t('open'),accelerator:'CmdOrCtrl+O',click:chooseOpen},{label:t('recent'),submenu:[{role:'recentDocuments',submenu:[{role:'clearRecentDocuments',label:t('clearRecent')}]}]},{type:'separator'},{label:t('save'),accelerator:'CmdOrCtrl+S',click:()=>{const d=focused();if(d)void save(d);}},{id:'saveAs',label:t('saveAs'),accelerator:'CmdOrCtrl+Shift+S',click:()=>{const d=focused();if(d)void save(d,true);}},{id:'exportPdf',label:t('exportPdf'),click:()=>{const d=focused();if(d)void choosePDFExport(d);}},...(process.platform==='win32'?[{type:'separator'},{id:'defaultApp',label:t('defaultApp'),click:()=>void openDefaultAppSettings({dialog,shell,win:BrowserWindow.getFocusedWindow(),t})}]:[]),{type:'separator'},{role:'close',label:t('close')},{role:'quit',label:t('quit')}]},
  {id:'edit',label:t('edit'),submenu:[{label:t('undo'),accelerator:'CmdOrCtrl+Z',click:()=>{const d=focused();if(d)send(d,{type:'edit',command:'undo'});}},{label:t('redo'),accelerator:'CmdOrCtrl+Shift+Z',click:()=>{const d=focused();if(d)send(d,{type:'edit',command:'redo'});}},{type:'separator'},{role:'cut',label:t('cut')},{role:'copy',label:t('copy')},{role:'paste',label:t('paste')},{role:'selectAll',label:t('selectAll')},{type:'separator'},{label:t('find'),accelerator:'CmdOrCtrl+F',click:()=>{const d=focused();if(d)send(d,{type:'find'});}}]},
  {id:'view',label:t('view'),submenu:[...['preview','horizontal','vertical','editor'].map(layout=>({label:t(layout),click:()=>{const d=focused();if(d)send(d,{type:'layout',layout});}})),{type:'separator'},{label:t('language'),submenu:[{id:'language-system',type:'radio',label:t('systemLanguage'),checked:preferences.language==='system',click:()=>setLanguage('system')},{type:'separator'},...Object.entries(languageNames).map(([id,name])=>({id:`language-${id}`,type:'radio',label:name,checked:preferences.language===id,click:()=>setLanguage(id)}))]},{type:'separator'},{role:'togglefullscreen',label:t('fullscreen')}]},
+ {id:'windowMenu',label:t('windowMenu'),submenu:documentMenuItems()},
  {id:'help',label:t('help'),submenu:[{id:'syntax',label:t('syntax'),click:()=>{const win=new BrowserWindow({title:t('syntax'),width:850,height:700,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});win.__markdownHelp=true;win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',e=>e.preventDefault());void win.loadURL(`markdownre://ui/help.html?lang=${encodeURIComponent(resolveLanguage(preferences.language))}`);}},{id:'about',label:t('about'),click:showAbout}]},
 ]));}
 async function start(){
@@ -136,10 +202,11 @@ async function start(){
     const doc=documents.get(event.sender.id);
     if(!doc||event.senderFrame!==event.sender.mainFrame||event.senderFrame.url!==UI||!message||typeof message.type!=='string')return;
     switch(message.type){
-      case 'ready':doc.ready=true;send(doc,{type:'preferences',...preferences,language:resolveLanguage(preferences.language)});send(doc,{type:'document',text:doc.text,base:`markdownre://document/${doc.token}/`});break;
+      case 'ready':doc.ready=true;send(doc,{type:'preferences',...preferences,language:resolveLanguage(preferences.language)});send(doc,{type:'document',text:doc.text,hasFile:!!doc.file,base:`markdownre://document/${doc.token}/`});break;
       case 'changed':if(typeof message.text==='string'){doc.text=message.text;updateTitle(doc);}break;
       case 'content':if(typeof message.text==='string'){const request=doc.requests.get(message.action);doc.requests.delete(message.action);request?.resolve(message.text);}break;
       case 'openDocument':void chooseOpen();break;
+      case 'reloadDocument':void reloadDocument(doc);break;
       case 'saveDocument':void save(doc);break;
       case 'theme':if(themes.has(message.theme)){preferences.theme=message.theme;storePreferences();for(const d of documents.values())send(d,{type:'theme',theme:message.theme});if(aboutWindow&&!aboutWindow.isDestroyed())void aboutWindow.webContents.executeJavaScript(`window.setAboutTheme?.(${JSON.stringify(message.theme)})`);}break;
       case 'ratios':for(const key of ['horizontal','vertical'])if(Number.isFinite(message[key])&&message[key]>=0.15&&message[key]<=0.85)preferences[key]=message[key];storePreferences();break;

@@ -109,6 +109,30 @@ let outlineDeadline = Date(timeIntervalSinceNow: 5)
 while !outlineChecked && Date() < outlineDeadline { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05)) }
 precondition(outlineState == ["true", "启动测试"], "Native preview outline did not open or list the document heading")
 print("Native preview outline: opened and listed the heading")
+// Reload via the toolbar and verify both the rendered text and the format of the next save.
+let originalBytes = try Data(contentsOf: fixtureURL)
+let externalText = "# Reloaded from disk\r\n"
+let externalBytes = Data([0xfe, 0xff]) + externalText.data(using: .utf16BigEndian)!
+func reloadFixture(_ bytes: Data, heading: String) throws {
+    try bytes.write(to: fixtureURL, options: .atomic)
+    startupDocument.web.evaluateJavaScript("document.querySelector('#reload-file').click()")
+    var loaded = false
+    let limit = Date(timeIntervalSinceNow: 5)
+    while !loaded && Date() < limit {
+        startupDocument.web.evaluateJavaScript("document.querySelector('#preview h1')?.textContent") { result, _ in
+            loaded = result as? String == heading
+        }
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+    }
+    precondition(loaded && startupDocument.text == startupDocument.savedText)
+}
+try reloadFixture(externalBytes, heading: "Reloaded from disk")
+precondition(startupDocument.save())
+let savedReloadedBytes = try Data(contentsOf: fixtureURL)
+precondition(savedReloadedBytes == externalBytes, "Reload lost UTF-16 byte order, BOM or line endings")
+try reloadFixture(originalBytes, heading: "启动测试")
+print("Native reload: external content loaded and saved in its original format")
+
 let originalLanguage = preferences.string(forKey: "language")
 let choice = NSMenuItem(); choice.representedObject = "ja"
 testDelegate.chooseLanguage(choice)
@@ -267,6 +291,33 @@ startupDocument.window.performClose(nil)
 RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.1))
 precondition(testDelegate.windows.isEmpty)
 print("WebView startup: rendered content released the loading cover")
+// Drive the same native menu items a user would select.
+let menuDocs = try (0..<2).map { _ in try DocumentWindow(server: testDelegate.server, url: nil) }
+menuDocs.forEach { testDelegate.track($0) }
+let windowMenu = testApp.mainMenu!.items.compactMap { $0.submenu }.first { $0.title == tr("windowMenu") }!
+windowMenu.delegate?.menuNeedsUpdate?(windowMenu)
+let switches = windowMenu.items.filter { $0.action == #selector(AppDelegate.chooseDocumentWindow(_:)) }
+precondition(switches.count == 2 && switches[0].title != switches[1].title)
+precondition(NSApp.sendAction(switches[0].action!, to: switches[0].target, from: switches[0]))
+let closeMenu = windowMenu.items.last!.submenu!
+let target = closeMenu.items[1]
+precondition(target.representedObject as? String == menuDocs[1].id)
+menuDocs[1].text = "Unsaved change"
+let cancel = Timer(timeInterval: 0.1, repeats: false) { _ in NSApp.stopModal(withCode: .alertSecondButtonReturn) }
+RunLoop.main.add(cancel, forMode: .modalPanel)
+precondition(NSApp.sendAction(target.action!, to: target.target, from: target))
+precondition(testDelegate.windows.count == 2 && menuDocs[1].text == "Unsaved change")
+menuDocs[1].text = menuDocs[1].savedText
+precondition(NSApp.sendAction(target.action!, to: target.target, from: target))
+RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.1))
+windowMenu.delegate?.menuNeedsUpdate?(windowMenu)
+precondition(testDelegate.windows.count == 1 && testDelegate.windows[0] === menuDocs[0])
+precondition(windowMenu.items.last?.submenu?.items.count == 1)
+menuDocs[0].window.performClose(nil)
+RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.1))
+windowMenu.delegate?.menuNeedsUpdate?(windowMenu)
+precondition(windowMenu.items.count == 1 && !windowMenu.items[0].isEnabled)
+print("Window menu: distinguished untitled documents, respected cancellation and closed the selected document")
 for iteration in 0..<5 {
     weak var releasedDocument: DocumentWindow?
     autoreleasepool {

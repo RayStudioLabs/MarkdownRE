@@ -239,7 +239,7 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
     var text = ""
     var savedText = ""
     var encoding: String.Encoding = .utf8
-    var hasUTF8BOM = false
+    var byteOrderMark = Data()
     var newline = "\n"
     var modifiedAt: Date?
     var ready = false
@@ -250,20 +250,6 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
     init(server: ResourceServer, url: URL?) throws {
         self.server = server
         self.url = url
-        if let url = url {
-            let data = try Data(contentsOf: url)
-            let raw: String
-            if data.starts(with: [0xef,0xbb,0xbf]), let value = String(data: data.dropFirst(3), encoding: .utf8) { hasUTF8BOM = true; raw = value }
-            else if let utf8 = String(data:data, encoding:.utf8) { raw = utf8 }
-            else if (data.starts(with: [0xff, 0xfe]) || data.starts(with: [0xfe, 0xff])), let utf16 = String(data:data, encoding:.utf16) { encoding = .utf16; raw = utf16 }
-            else { throw NSError(domain:"MarkdownRE", code:2, userInfo:[NSLocalizedDescriptionKey:tr("encodingError")]) }
-            let withoutCRLF = raw.replacingOccurrences(of:"\r\n", with:"")
-            if raw.contains("\r\n") && (withoutCRLF.contains("\n") || withoutCRLF.contains("\r")) { throw NSError(domain:"MarkdownRE",code:3,userInfo:[NSLocalizedDescriptionKey:tr("mixedNewlines")]) }
-            if raw.contains("\r\n") { newline = "\r\n" } else if raw.contains("\r") && !raw.contains("\n") { newline = "\r" } else if raw.contains("\r") { throw NSError(domain:"MarkdownRE",code:3,userInfo:[NSLocalizedDescriptionKey:tr("mixedNewlines")]) }
-            text = raw.replacingOccurrences(of:"\r\n",with:"\n").replacingOccurrences(of:"\r",with:"\n")
-            savedText = text
-            modifiedAt = try? url.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate
-        }
         let configuration = WKWebViewConfiguration()
         let controller = WKUserContentController()
         let savedTheme = preferences.string(forKey: "theme") ?? "solarized-light"
@@ -285,6 +271,7 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
         // Swift ARC owns this window; AppKit must not release it on close.
         window.isReleasedWhenClosed = false
         super.init()
+        if let url = url { try readFile(url) }
         controller.add(self, name:"app")
         web.navigationDelegate = self
         let container = NSView(frame: window.contentView?.bounds ?? .zero)
@@ -311,6 +298,57 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
             self.showError(tr("editorFailed"))
         }
     }
+    private func modificationDate(_ file: URL) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: file.path))?[.modificationDate] as? Date
+    }
+
+    private func readFile(_ file: URL) throws {
+        let date = modificationDate(file)
+        let data = try Data(contentsOf: file)
+        let format: String.Encoding
+        let mark: Data
+        if data.starts(with: [0xff, 0xfe]) {
+            format = .utf16LittleEndian; mark = data.prefix(2)
+        } else if data.starts(with: [0xfe, 0xff]) {
+            format = .utf16BigEndian; mark = data.prefix(2)
+        } else {
+            format = .utf8; mark = data.starts(with: [0xef, 0xbb, 0xbf]) ? data.prefix(3) : Data()
+        }
+        guard let raw = String(data: data.dropFirst(mark.count), encoding: format) else {
+            throw NSError(domain: "MarkdownRE", code: 2, userInfo: [NSLocalizedDescriptionKey: tr("encodingError")])
+        }
+        let withoutCRLF = raw.replacingOccurrences(of: "\r\n", with: "")
+        let hasCRLF = raw.contains("\r\n"), hasCR = withoutCRLF.contains("\r"), hasLF = withoutCRLF.contains("\n")
+        if (hasCRLF && (hasCR || hasLF)) || (hasCR && hasLF) {
+            throw NSError(domain: "MarkdownRE", code: 3, userInfo: [NSLocalizedDescriptionKey: tr("mixedNewlines")])
+        }
+        // Commit the new buffer and save format only after the entire read succeeds.
+        newline = hasCRLF ? "\r\n" : hasCR ? "\r" : "\n"
+        encoding = format
+        byteOrderMark = mark
+        modifiedAt = date
+        text = raw.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
+        savedText = text
+    }
+
+    private func reloadDocument() {
+        var result: [String: Any] = ["type": "reloadFinished", "hasFile": url != nil]
+        defer { send(result) }
+        guard let file = url else { return }
+        if text != savedText {
+            let alert = NSAlert()
+            alert.messageText = tr("confirmReload")
+            alert.addButton(withTitle: tr("cancel"))
+            alert.addButton(withTitle: tr("reloadDocument"))
+            guard alert.runModal() == .alertSecondButtonReturn else { return }
+        }
+        do {
+            try readFile(file)
+            updateTitle()
+            result["text"] = text
+        } catch { showError(error.localizedDescription) }
+    }
+
     func applyTheme(_ value: String) {
         let themeID = value == "dark" ? "solarized-dark" : (value == "light" ? "solarized-light" : value)
         let theme = nativeThemes[themeID] ?? nativeThemes["solarized-light"]!
@@ -323,6 +361,7 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
     }
     func show() {
         showRequested = true
+        if window.isMiniaturized { window.deminiaturize(nil) }
         if loadingView.isHidden { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true) }
     }
     private func reveal() {
@@ -364,7 +403,7 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
         send(settings) { [weak self] success in
             guard let self = self else { return }
             guard success else { self.reveal(); self.showError(tr("settingsFailed")); return }
-            self.send(["type":"document","text":self.text,"base":self.server.origin + "doc/\(self.id)/"]) { [weak self] success in
+            self.send(["type":"document","text":self.text,"hasFile":self.url != nil,"base":self.server.origin + "doc/\(self.id)/"]) { [weak self] success in
                 guard let self = self else { return }
                 if !success { self.reveal(); self.showError(tr("documentFailed")) }
             }
@@ -376,6 +415,7 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
         case "ready": ready = true; loadIntoWeb()
         case "displayReady": showPreparedContent()
         case "openDocument": (NSApp.delegate as? AppDelegate)?.openDocument(nil)
+        case "reloadDocument": reloadDocument()
         case "saveDocument": _ = save()
         case "changed": if let value = data["text"] as? String { text = value; updateTitle() }
         case "ratios":
@@ -437,17 +477,19 @@ final class DocumentWindow: NSObject, NSWindowDelegate, WKScriptMessageHandler, 
             if chooser?.popup.indexOfSelectedItem == 1 { exportPDF(to: selected); return false }
         }
         guard let file = destination else { return false }
-        if !asNew, file == url, let oldDate = modifiedAt, let current = try? file.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate, current != oldDate {
+        if !asNew, file == url, let oldDate = modifiedAt, let current = modificationDate(file), current != oldDate {
             let alert = NSAlert(); alert.messageText = tr("changedExternally"); alert.informativeText = tr("confirmOverwrite"); alert.addButton(withTitle:tr("cancel")); alert.addButton(withTitle:tr("overwrite"))
             if alert.runModal() != .alertSecondButtonReturn { return false }
         }
         let output = text.replacingOccurrences(of:"\n",with:newline)
         guard var data = output.data(using:encoding) else { showError(tr("saveEncoding")); return false }
-        if hasUTF8BOM { data.insert(contentsOf:[0xef,0xbb,0xbf],at:0) }
+        data.insert(contentsOf: byteOrderMark, at: 0)
         do {
             try data.write(to:file,options:.atomic)
-            url = file; savedText = text; modifiedAt = try? file.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate
+            let pathChanged = url != file
+            url = file; savedText = text; modifiedAt = modificationDate(file)
             server.setFolder(file.deletingLastPathComponent(),for:id); updateTitle()
+            if pathChanged { send(["type":"documentBase", "base":server.origin + "doc/\(id)/"]) }
             (NSApp.delegate as? AppDelegate)?.recordRecent(file)
             return true
         } catch { showError("\(tr("saveFailed")): \(error.localizedDescription)"); return false }
@@ -576,11 +618,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
     }
-    func menuNeedsUpdate(_ menu: NSMenu) { removeUnwantedEditItems(menu) }
-    func menuWillOpen(_ menu: NSMenu) { removeUnwantedEditItems(menu) }
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        if menu === documentMenu { populateDocumentMenu(menu) }
+        else { removeUnwantedEditItems(menu) }
+    }
+    func menuWillOpen(_ menu: NSMenu) { if menu !== documentMenu { removeUnwantedEditItems(menu) } }
 
     var server: ResourceServer!
     var windows: [DocumentWindow] = []
+    private var documentMenu = NSMenu()
     var recentMenu = NSMenu(title:tr("recent"))
     var markdownHelp: MarkdownHelpWindow?
     var aboutWindow: AboutWindow?
@@ -663,6 +709,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         markdownHelp = help
         help.show()
     }
+    private func populateDocumentMenu(_ menu: NSMenu) {
+        menu.removeAllItems()
+        guard !windows.isEmpty else {
+            menu.addItem(withTitle: tr("noOpenDocuments"), action: nil, keyEquivalent: "").isEnabled = false
+            return
+        }
+        let closeMenu = NSMenu(title: tr("closeDocument"))
+        let byTitle = Dictionary(grouping: windows, by: { $0.window.title })
+        for (index, doc) in windows.enumerated() {
+            var title = doc.window.title
+            if byTitle[title, default: []].count > 1 {
+                title = doc.url.map { ($0.path as NSString).abbreviatingWithTildeInPath } ?? "\(title) (\(index + 1))"
+            }
+            let select = menu.addItem(withTitle: title, action: #selector(chooseDocumentWindow(_:)), keyEquivalent: "")
+            select.target = self
+            select.representedObject = doc.id
+            select.state = doc === active ? .on : .off
+            let close = closeMenu.addItem(withTitle: title, action: #selector(closeDocumentWindow(_:)), keyEquivalent: "")
+            close.target = self
+            close.representedObject = doc.id
+        }
+        menu.addItem(.separator())
+        menu.addItem(withTitle: closeMenu.title, action: nil, keyEquivalent: "").submenu = closeMenu
+    }
+    private func selectedDocument(_ item: NSMenuItem) -> DocumentWindow? {
+        guard let id = item.representedObject as? String else { return nil }
+        return windows.first { $0.id == id }
+    }
+    @objc func chooseDocumentWindow(_ item: NSMenuItem) {
+        selectedDocument(item)?.show()
+    }
+    @objc func closeDocumentWindow(_ item: NSMenuItem) {
+        guard let doc = selectedDocument(item) else { return }
+        doc.show()
+        doc.window.performClose(item)
+    }
     @objc func findInDocument(_ sender: Any?) { active?.send(["type":"find"]) }
     @objc func layout(_ sender: NSMenuItem) { if let value = sender.representedObject as? String { active?.send(["type":"layout","layout":value]) } }
     func updateRecent() { recentMenu.removeAllItems();for path in recents { let item=NSMenuItem(title:URL(fileURLWithPath:path).lastPathComponent,action:#selector(openRecent(_:)),keyEquivalent:"");item.target=self;item.representedObject=path;item.toolTip=path;recentMenu.addItem(item) } }
@@ -699,6 +781,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         for (id,name) in [("system",tr("systemLanguage"))] + languageNames {
             let item=NSMenuItem(title:name,action:#selector(chooseLanguage(_:)),keyEquivalent:"");item.target=self;item.representedObject=id;item.state = id == selected ? .on : .off;languageMenu.addItem(item)
         }
+        let windowItem = NSMenuItem()
+        bar.addItem(windowItem)
+        documentMenu = NSMenu(title: tr("windowMenu"))
+        documentMenu.delegate = self
+        windowItem.submenu = documentMenu
+        populateDocumentMenu(documentMenu)
         let help=NSMenuItem();bar.addItem(help);let hm=NSMenu(title:tr("help"));help.submenu=hm
         add(hm,tr("syntax"),#selector(showMarkdownHelp(_:)),"")
     }

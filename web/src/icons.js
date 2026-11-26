@@ -27,6 +27,7 @@ import icon27 from 'lucide-static/icons/moon.svg?raw';
 import icon28 from 'lucide-static/icons/list-tree.svg?raw';
 import icon29 from 'lucide-static/icons/x.svg?raw';
 
+import Refresh from 'lucide-static/icons/refresh-cw.svg?raw';
 import Search from 'lucide-static/icons/search.svg?raw';
 import ChevronRight from 'lucide-static/icons/chevron-right.svg?raw';
 import ArrowUp from 'lucide-static/icons/arrow-up.svg?raw';
@@ -36,7 +37,7 @@ import Regex from 'lucide-static/icons/regex.svg?raw';
 import Replace from 'lucide-static/icons/replace.svg?raw';
 import ReplaceAll from 'lucide-static/icons/replace-all.svg?raw';
 
-const icons = {'search':Search, 'chevron-right':ChevronRight, 'arrow-up':ArrowUp, 'arrow-down':ArrowDown, 'case-sensitive':CaseSensitive, 'regex':Regex, 'replace':Replace, 'replace-all':ReplaceAll, 'heading-1':icon0, 'heading-2':icon1, 'heading-3':icon2, 'bold':icon3, 'italic':icon4, 'strikethrough':icon5, 'code':icon6, 'link':icon8, 'image':icon9, 'quote':icon10, 'list':icon11, 'list-ordered':icon12, 'list-todo':icon13, 'square-code':icon14, 'table':icon16, 'minus':icon17, 'folder-open':icon18, 'save':icon19, 'undo-2':icon20, 'redo-2':icon21, 'eye':icon22, 'columns-2':icon23, 'rows-2':icon24, 'pencil':icon25, 'sun':icon26, 'moon':icon27, 'list-tree':icon28, 'x':icon29};
+const icons = {'refresh-cw':Refresh, 'search':Search, 'chevron-right':ChevronRight, 'arrow-up':ArrowUp, 'arrow-down':ArrowDown, 'case-sensitive':CaseSensitive, 'regex':Regex, 'replace':Replace, 'replace-all':ReplaceAll, 'heading-1':icon0, 'heading-2':icon1, 'heading-3':icon2, 'bold':icon3, 'italic':icon4, 'strikethrough':icon5, 'code':icon6, 'link':icon8, 'image':icon9, 'quote':icon10, 'list':icon11, 'list-ordered':icon12, 'list-todo':icon13, 'square-code':icon14, 'table':icon16, 'minus':icon17, 'folder-open':icon18, 'save':icon19, 'undo-2':icon20, 'redo-2':icon21, 'eye':icon22, 'columns-2':icon23, 'rows-2':icon24, 'pencil':icon25, 'sun':icon26, 'moon':icon27, 'list-tree':icon28, 'x':icon29};
 
 export function renderIcons() {
   for (const element of document.querySelectorAll('[data-icon]')) {
