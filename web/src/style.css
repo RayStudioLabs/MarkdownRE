@@ -165,3 +165,55 @@ button { color: inherit; cursor: pointer; }
   #preview tbody { display: table-row-group; }
   #preview h1, #preview h2, #preview h3, #preview h4, #preview h5, #preview h6 { break-after: avoid; }
 }
+
+#app { position: relative; }
+#find-panel {
+  position: absolute;
+  z-index: 4;
+  top: 39px;
+  right: 6px;
+  display: flex;
+  align-items: stretch;
+  width: min(540px, calc(100% - 12px));
+  padding: 5px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  box-shadow: 0 3px 12px #0002;
+}
+#find-panel[hidden], #find-panel [hidden] { display: none; }
+.find-rows { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 2px; }
+.find-row { display: contents; }
+.find-controls { display: flex; align-items: center; gap: 2px; }
+.find-symbol { display: inline-flex; color: var(--muted); }
+.find-symbol svg { width: 15px; height: 15px; }
+.find-field {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.find-field:focus-within { border-color: var(--accent); }
+.find-field input {
+  width: 0;
+  min-width: 0;
+  flex: 1;
+  padding: 4px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+}
+#find-panel .icon-button { width: 23px; min-width: 23px; height: 25px; padding: 3px; }
+#find-panel .icon-button[aria-pressed=true] { background: var(--surface); color: var(--accent); }
+#find-panel #toggle-replace { width: 17px; min-width: 17px; height: auto; }
+#toggle-replace[aria-expanded=true] svg { transform: rotate(90deg); }
+#find-count { margin: 0 4px; min-width: 3ch; text-align: center; font-variant-numeric: tabular-nums; }
+#find-query[aria-invalid=true], #find-count.invalid { color: var(--syntax-red); }
+::highlight(markdownre-find) { background-color: #ffcd57; color: #201a0c; }
+.monaco-editor .find-current { background: #ffbc4580; outline: 1px solid #b4730d; }

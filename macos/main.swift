@@ -663,6 +663,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         markdownHelp = help
         help.show()
     }
+    @objc func findInDocument(_ sender: Any?) { active?.send(["type":"find"]) }
     @objc func layout(_ sender: NSMenuItem) { if let value = sender.representedObject as? String { active?.send(["type":"layout","layout":value]) } }
     func updateRecent() { recentMenu.removeAllItems();for path in recents { let item=NSMenuItem(title:URL(fileURLWithPath:path).lastPathComponent,action:#selector(openRecent(_:)),keyEquivalent:"");item.target=self;item.representedObject=path;item.toolTip=path;recentMenu.addItem(item) } }
     @objc func chooseLanguage(_ sender: NSMenuItem) {
@@ -689,6 +690,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         fm.addItem(.separator());add(fm,tr("save"),#selector(save(_:)),"s");add(fm,tr("saveAs"),#selector(saveAs(_:)),"s",[.command,.shift]);add(fm,tr("exportPdf"),#selector(exportPDF(_:)),"");fm.addItem(.separator());fm.addItem(withTitle:tr("close"),action:#selector(NSWindow.performClose(_:)),keyEquivalent:"w")
         let edit=NSMenuItem();bar.addItem(edit);let em=NSMenu(title:tr("edit"));em.delegate=self;edit.submenu=em
         for (title,action,key) in [(tr("undo"),Selector(("undo:")),"z"),(tr("cut"),#selector(NSText.cut(_:)),"x"),(tr("copy"),#selector(NSText.copy(_:)),"c"),(tr("paste"),#selector(NSText.paste(_:)),"v"),(tr("selectAll"),#selector(NSText.selectAll(_:)),"a")] { em.addItem(withTitle:title,action:action,keyEquivalent:key) }
+        em.addItem(.separator());add(em,tr("find"),#selector(findInDocument(_:)),"f")
         let view=NSMenuItem();bar.addItem(view);let vm=NSMenu(title:tr("view"));view.submenu=vm
         for (title,value,key) in [(tr("preview"),"preview","1"),(tr("editor"),"editor","2"),(tr("horizontal"),"horizontal","3"),(tr("vertical"),"vertical","4")] { let item=NSMenuItem(title:title,action:#selector(layout(_:)),keyEquivalent:key);item.target=self;item.representedObject=value;vm.addItem(item) }
         vm.addItem(.separator())

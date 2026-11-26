@@ -11,6 +11,7 @@
       <div id="toolbar-left">
       <div class="toolbar-group file-actions">
         <button type="button" id="open-file" class="icon-button" title="打开文件（⌘O）" aria-label="打开文件" data-icon="folder-open" data-i18n="openFile"></button>
+        <button type="button" id="open-find" class="icon-button" data-i18n="find" title="" aria-label="" data-icon="search" aria-expanded="false" aria-controls="find-panel"></button>
       </div>
       <div class="toolbar-group" aria-label="页面模式" data-i18n="layouts">
         <button type="button" class="icon-button" data-layout="preview" data-i18n="preview" title="纯预览" aria-label="纯预览" aria-pressed="false" data-icon="eye"></button>
@@ -58,6 +59,32 @@
         </div>
       </div>
     </div>
+    <section id="find-panel" role="search" aria-label="" data-i18n="find" hidden>
+      <button type="button" id="toggle-replace" class="icon-button" data-i18n="toggleReplace" title="" aria-label="" data-icon="chevron-right" aria-expanded="false" aria-controls="replace-row"></button>
+      <div class="find-rows">
+        <div class="find-row">
+          <div class="find-field">
+            <input id="find-query" data-i18n="find" aria-label="" placeholder="" autocomplete="off" spellcheck="false">
+            <span class="find-symbol" aria-hidden="true" data-icon="search"></span>
+            <button type="button" id="find-case" class="icon-button" data-i18n="matchCase" title="" aria-label="" data-icon="case-sensitive" aria-pressed="false"></button>
+            <button type="button" id="find-regex" class="icon-button" data-i18n="useRegex" title="" aria-label="" data-icon="regex" aria-pressed="false"></button>
+          </div>
+          <div class="find-controls">
+            <output id="find-count" aria-live="polite"></output>
+            <button type="button" id="find-prev" class="icon-button" data-i18n="previousMatch" title="" aria-label="" data-icon="arrow-up"></button>
+            <button type="button" id="find-next" class="icon-button" data-i18n="nextMatch" title="" aria-label="" data-icon="arrow-down"></button>
+            <button type="button" id="find-close" class="icon-button" data-i18n="closeFind" title="" aria-label="" data-icon="x"></button>
+          </div>
+        </div>
+        <div id="replace-row" class="find-row" hidden>
+          <div class="find-field"><input id="replace-value" data-i18n="replace" aria-label="" placeholder="" autocomplete="off" spellcheck="false"></div>
+          <div class="find-controls">
+            <button type="button" id="replace-one" class="icon-button" data-i18n="replace" title="" aria-label="" data-icon="replace"></button>
+            <button type="button" id="replace-all" class="icon-button" data-i18n="replaceAll" title="" aria-label="" data-icon="replace-all"></button>
+          </div>
+        </div>
+      </div>
+    </section>
     <div id="workspace">
       <div id="editor"></div>
       <div id="splitter"></div>
@@ -72,7 +99,7 @@
           <p id="outline-empty" data-i18n-text="outlineEmpty">没有标题</p>
         </aside>
         <div id="outline-splitter" hidden role="separator" aria-label="目录" data-i18n="outline" aria-orientation="vertical" aria-controls="outline-panel" tabindex="0"></div>
-        <main id="preview"></main>
+        <main id="preview" tabindex="-1"></main>
       </div>
     </div>
   </div>

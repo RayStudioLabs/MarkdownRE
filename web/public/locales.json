@@ -139,7 +139,17 @@
     "outlineUntitled": "Untitled heading",
     "windowsDefaultHint": "In Windows Settings, search for .md and select MarkdownRE. If it is not listed, install the Windows version first.",
     "windowsDefaultOpen": "Open Settings",
-    "windowsDefaultFailed": "Could not open Windows Settings."
+    "windowsDefaultFailed": "Could not open Windows Settings.",
+    "find": "Find",
+    "toggleReplace": "Toggle replace",
+    "matchCase": "Match case",
+    "useRegex": "Use regular expression",
+    "previousMatch": "Previous match",
+    "nextMatch": "Next match",
+    "closeFind": "Close find",
+    "replace": "Replace",
+    "replaceAll": "Replace all",
+    "invalidRegex": "Invalid expression"
   },
   "zh-Hans": {
     "language": "语言",
@@ -281,7 +291,17 @@
     "outlineUntitled": "无标题",
     "windowsDefaultHint": "在 Windows 设置中搜索 .md，然后选择 MarkdownRE。如果列表中没有 MarkdownRE，请先安装 Windows 版。",
     "windowsDefaultOpen": "打开设置",
-    "windowsDefaultFailed": "无法打开 Windows 设置。"
+    "windowsDefaultFailed": "无法打开 Windows 设置。",
+    "find": "查找",
+    "toggleReplace": "展开或收起替换",
+    "matchCase": "区分大小写",
+    "useRegex": "使用正则表达式",
+    "previousMatch": "上一个匹配项",
+    "nextMatch": "下一个匹配项",
+    "closeFind": "关闭查找",
+    "replace": "替换",
+    "replaceAll": "全部替换",
+    "invalidRegex": "正则表达式无效"
   },
   "zh-Hant": {
     "language": "語言",
@@ -423,7 +443,17 @@
     "outlineUntitled": "無標題",
     "windowsDefaultHint": "在 Windows 設定中搜尋 .md，然後選擇 MarkdownRE。如果清單中沒有 MarkdownRE，請先安裝 Windows 版。",
     "windowsDefaultOpen": "開啟設定",
-    "windowsDefaultFailed": "無法開啟 Windows 設定。"
+    "windowsDefaultFailed": "無法開啟 Windows 設定。",
+    "find": "尋找",
+    "toggleReplace": "展開或收合取代",
+    "matchCase": "區分大小寫",
+    "useRegex": "使用正規表示式",
+    "previousMatch": "上一個相符項目",
+    "nextMatch": "下一個相符項目",
+    "closeFind": "關閉尋找",
+    "replace": "取代",
+    "replaceAll": "全部取代",
+    "invalidRegex": "正規表示式無效"
   },
   "de": {
     "language": "Sprache",
@@ -565,7 +595,17 @@
     "outlineUntitled": "Überschrift ohne Titel",
     "windowsDefaultHint": "Suchen Sie in den Windows-Einstellungen nach .md und wählen Sie MarkdownRE. Falls es nicht aufgeführt ist, installieren Sie zuerst die Windows-Version.",
     "windowsDefaultOpen": "Einstellungen öffnen",
-    "windowsDefaultFailed": "Windows-Einstellungen konnten nicht geöffnet werden."
+    "windowsDefaultFailed": "Windows-Einstellungen konnten nicht geöffnet werden.",
+    "find": "Suchen",
+    "toggleReplace": "Ersetzen ein- oder ausblenden",
+    "matchCase": "Groß-/Kleinschreibung beachten",
+    "useRegex": "Regulären Ausdruck verwenden",
+    "previousMatch": "Vorheriger Treffer",
+    "nextMatch": "Nächster Treffer",
+    "closeFind": "Suche schließen",
+    "replace": "Ersetzen",
+    "replaceAll": "Alle ersetzen",
+    "invalidRegex": "Ungültiger Ausdruck"
   },
   "fr": {
     "language": "Langue",
@@ -707,7 +747,17 @@
     "outlineUntitled": "Titre sans texte",
     "windowsDefaultHint": "Dans les paramètres Windows, recherchez .md et choisissez MarkdownRE. S’il ne figure pas dans la liste, installez d’abord la version Windows.",
     "windowsDefaultOpen": "Ouvrir les paramètres",
-    "windowsDefaultFailed": "Impossible d’ouvrir les paramètres Windows."
+    "windowsDefaultFailed": "Impossible d’ouvrir les paramètres Windows.",
+    "find": "Rechercher",
+    "toggleReplace": "Afficher ou masquer le remplacement",
+    "matchCase": "Respecter la casse",
+    "useRegex": "Utiliser une expression régulière",
+    "previousMatch": "Résultat précédent",
+    "nextMatch": "Résultat suivant",
+    "closeFind": "Fermer la recherche",
+    "replace": "Remplacer",
+    "replaceAll": "Tout remplacer",
+    "invalidRegex": "Expression non valide"
   },
   "es": {
     "language": "Idioma",
@@ -849,7 +899,17 @@
     "outlineUntitled": "Título sin texto",
     "windowsDefaultHint": "En Configuración de Windows, busca .md y selecciona MarkdownRE. Si no aparece, instala primero la versión para Windows.",
     "windowsDefaultOpen": "Abrir Configuración",
-    "windowsDefaultFailed": "No se pudo abrir Configuración de Windows."
+    "windowsDefaultFailed": "No se pudo abrir Configuración de Windows.",
+    "find": "Buscar",
+    "toggleReplace": "Mostrar u ocultar reemplazo",
+    "matchCase": "Distinguir mayúsculas y minúsculas",
+    "useRegex": "Usar expresión regular",
+    "previousMatch": "Coincidencia anterior",
+    "nextMatch": "Coincidencia siguiente",
+    "closeFind": "Cerrar búsqueda",
+    "replace": "Reemplazar",
+    "replaceAll": "Reemplazar todo",
+    "invalidRegex": "Expresión no válida"
   },
   "ja": {
     "language": "言語",
@@ -991,7 +1051,17 @@
     "outlineUntitled": "無題の見出し",
     "windowsDefaultHint": "Windows の設定で .md を検索し、MarkdownRE を選択してください。表示されない場合は、Windows 版を先にインストールしてください。",
     "windowsDefaultOpen": "設定を開く",
-    "windowsDefaultFailed": "Windows の設定を開けませんでした。"
+    "windowsDefaultFailed": "Windows の設定を開けませんでした。",
+    "find": "検索",
+    "toggleReplace": "置換欄を切り替え",
+    "matchCase": "大文字と小文字を区別",
+    "useRegex": "正規表現を使用",
+    "previousMatch": "前の一致",
+    "nextMatch": "次の一致",
+    "closeFind": "検索を閉じる",
+    "replace": "置換",
+    "replaceAll": "すべて置換",
+    "invalidRegex": "正規表現が無効です"
   },
   "ko": {
     "language": "언어",
@@ -1133,7 +1203,17 @@
     "outlineUntitled": "제목 없는 항목",
     "windowsDefaultHint": "Windows 설정에서 .md를 검색하고 MarkdownRE를 선택하세요. 목록에 없으면 Windows 버전을 먼저 설치하세요.",
     "windowsDefaultOpen": "설정 열기",
-    "windowsDefaultFailed": "Windows 설정을 열 수 없습니다."
+    "windowsDefaultFailed": "Windows 설정을 열 수 없습니다.",
+    "find": "찾기",
+    "toggleReplace": "바꾸기 표시 전환",
+    "matchCase": "대소문자 구분",
+    "useRegex": "정규식 사용",
+    "previousMatch": "이전 일치 항목",
+    "nextMatch": "다음 일치 항목",
+    "closeFind": "찾기 닫기",
+    "replace": "바꾸기",
+    "replaceAll": "모두 바꾸기",
+    "invalidRegex": "잘못된 정규식"
   },
   "pt-BR": {
     "language": "Idioma",
@@ -1275,7 +1355,17 @@
     "outlineUntitled": "Título sem texto",
     "windowsDefaultHint": "Nas Configurações do Windows, procure .md e selecione MarkdownRE. Se ele não aparecer, instale primeiro a versão para Windows.",
     "windowsDefaultOpen": "Abrir Configurações",
-    "windowsDefaultFailed": "Não foi possível abrir as Configurações do Windows."
+    "windowsDefaultFailed": "Não foi possível abrir as Configurações do Windows.",
+    "find": "Localizar",
+    "toggleReplace": "Mostrar ou ocultar substituição",
+    "matchCase": "Diferenciar maiúsculas e minúsculas",
+    "useRegex": "Usar expressão regular",
+    "previousMatch": "Ocorrência anterior",
+    "nextMatch": "Próxima ocorrência",
+    "closeFind": "Fechar pesquisa",
+    "replace": "Substituir",
+    "replaceAll": "Substituir tudo",
+    "invalidRegex": "Expressão inválida"
   },
   "it": {
     "language": "Lingua",
@@ -1417,6 +1507,16 @@
     "outlineUntitled": "Titolo senza testo",
     "windowsDefaultHint": "Nelle impostazioni di Windows, cerca .md e seleziona MarkdownRE. Se non compare, installa prima la versione per Windows.",
     "windowsDefaultOpen": "Apri impostazioni",
-    "windowsDefaultFailed": "Impossibile aprire le impostazioni di Windows."
+    "windowsDefaultFailed": "Impossibile aprire le impostazioni di Windows.",
+    "find": "Trova",
+    "toggleReplace": "Mostra o nascondi sostituzione",
+    "matchCase": "Distingui maiuscole e minuscole",
+    "useRegex": "Usa espressione regolare",
+    "previousMatch": "Risultato precedente",
+    "nextMatch": "Risultato successivo",
+    "closeFind": "Chiudi ricerca",
+    "replace": "Sostituisci",
+    "replaceAll": "Sostituisci tutto",
+    "invalidRegex": "Espressione non valida"
   }
 }

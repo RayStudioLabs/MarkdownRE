@@ -1,4 +1,5 @@
 import {loadTranslations, resolveLanguage, translate} from './i18n.js';
+import {setupFind} from './find.js';
 import {syncPreviewScroll} from './scroll-sync.js';
 import {localImageURL} from './image-path.js';
 import {themes, normalizeTheme} from './themes.js';
@@ -21,20 +22,24 @@ function applyLanguage(value) {
   for (const element of document.querySelectorAll('[data-i18n]')) {
     const text = t(element.dataset.i18n);
     if (element.hasAttribute('aria-label')) element.setAttribute('aria-label', text);
+    if (element.hasAttribute('placeholder')) element.placeholder = text;
     if (element.hasAttribute('title')) element.title = text;
   }
   for (const element of document.querySelectorAll('[data-i18n-text]')) element.textContent = t(element.dataset.i18nText);
   updateOutlineUntitled();
+  find.displayCount();
   const mac = !window.desktopBridge || window.desktopBridge.platform === 'darwin';
-  for (const [id, shortcut] of Object.entries(mac ? {'open-file':'⌘O','save-file':'⌘S',undo:'⌘Z',redo:'⇧⌘Z / ⌘Y'} : {'open-file':'Ctrl+O','save-file':'Ctrl+S',undo:'Ctrl+Z',redo:'Ctrl+Shift+Z / Ctrl+Y'})) {
+  for (const [id, shortcut] of Object.entries(mac ? {'open-find':'⌘F','open-file':'⌘O','save-file':'⌘S',undo:'⌘Z',redo:'⇧⌘Z / ⌘Y'} : {'open-find':'Ctrl+F','open-file':'Ctrl+O','save-file':'Ctrl+S',undo:'Ctrl+Z',redo:'Ctrl+Shift+Z / Ctrl+Y'})) {
     const button = document.getElementById(id); button.title += ` (${shortcut})`;
   }
 }
-applyLanguage(language);
 const initialTheme = normalizeTheme(window.__markdownREInitialTheme);
 const state = {layout:'preview', theme:initialTheme, horizontal:0.5, vertical:0.5, base:'', text:'', outlineOpen:false};
 let editor = null, editorModule = null, editorPromise = null;
 let rendererPromise = null, changing = false, renderVersion = 0, syncFrame = 0;
+
+const find = setupFind({getEditor:() => editor, getLayout:() => state.layout, translate:t});
+applyLanguage(language);
 
 function updateHistoryButtons() {
   const model = editor?.getModel();
@@ -179,7 +184,7 @@ function schedulePreviewSync() {
   if (!editor || (state.layout !== 'horizontal' && state.layout !== 'vertical') || syncFrame) return;
   syncFrame = requestAnimationFrame(() => {
     syncFrame = 0;
-    if (editor && (state.layout === 'horizontal' || state.layout === 'vertical')) syncPreviewScroll(editor, $('#preview'));
+    if (!find.ownsPreviewScroll() && editor && (state.layout === 'horizontal' || state.layout === 'vertical')) syncPreviewScroll(editor, $('#preview'));
   });
 }
 $('#preview').addEventListener('load', event => { if (event.target instanceof HTMLImageElement) schedulePreviewSync(); }, true);
@@ -189,17 +194,18 @@ function ensureEditor() {
     editorPromise = import('./editor.js').then(module => {
       editorModule = module;
       editor = module.createEditor($('#editor'), themes[state.theme], state.text);
-      editor.onDidScrollChange(event => { if (event.scrollTopChanged) schedulePreviewSync(); });
+      editor.onDidScrollChange(event => { if (event.scrollTopChanged) { find.editorScrolled(); schedulePreviewSync(); } });
       editor.onDidLayoutChange(schedulePreviewSync);
       editor.onDidChangeCursorSelection(updateFormatButtons);
       editor.onDidChangeModelContent(() => {
         updateHistoryAfterChange();
         updateFormatButtons();
-        if (!changing) { state.text = editor.getValue(); bridge('changed',{text:state.text}); render(state.text); }
+        if (!changing) { state.text = editor.getValue(); find.contentChanged(); bridge('changed',{text:state.text}); render(state.text); }
       });
       updateHistoryButtons();
       updateFormatButtons();
       if (state.layout !== 'preview') { editor.layout(); schedulePreviewSync(); }
+      find.layoutChanged();
       return editor;
     }).catch(error => {
       editorPromise = null;
@@ -213,11 +219,12 @@ function ensureEditor() {
 async function render(text) {
   const version = ++renderVersion;
   const preview = $('#preview');
-  if (!text) { preview.replaceChildren(); updateOutline(); return; }
+  if (!text) { preview.replaceChildren(); updateOutline(); find.rendered([]); return; }
   try {
     rendererPromise ||= import('./render.js');
     const {renderMarkdown} = await rendererPromise;
-    const html = await renderMarkdown(text);
+    let spans;
+    const html = await renderMarkdown(text, result => { spans = result; });
     if (version !== renderVersion) return;
     preview.innerHTML = html;
     for (const image of preview.querySelectorAll('img[src]')) {
@@ -226,10 +233,11 @@ async function render(text) {
       image.referrerPolicy = 'no-referrer';
     }
     updateOutline();
+    find.rendered(spans);
     schedulePreviewSync();
   } catch (error) {
     rendererPromise = null;
-    if (version === renderVersion) { preview.textContent = `${t('renderFailed')}: ${error.message}`; updateOutline(); }
+    if (version === renderVersion) { preview.textContent = `${t('renderFailed')}: ${error.message}`; updateOutline(); find.rendered([]); }
   }
 }
 
@@ -317,6 +325,7 @@ function applyLayout(layout) {
     ensureEditor().then(instance => { if (state.layout !== 'preview') { instance.layout(); schedulePreviewSync(); } }).catch(() => {});
   }
   if (editor) editor.layout();
+  find.layoutChanged();
   schedulePreviewSync();
 }
 function applyTheme(value) {
@@ -351,7 +360,10 @@ splitter.addEventListener('pointermove',event=>{
 splitter.addEventListener('pointerup',()=>bridge('ratios',{horizontal:state.horizontal,vertical:state.vertical}));
 $('#preview').addEventListener('click',event=>{const link=event.target.closest('a');if(link){const href=link.getAttribute('href');if(href && !href.startsWith('#')) {event.preventDefault();bridge('openLink',{href});}}});
 window.receiveNative = (message) => {
+  if(message.type==='find') find.open();
   if(message.type==='document') {
+    find.close(false);
+    find.contentChanged();
     state.text = message.text || ''; state.base=message.base || '';
     if (editor) { changing=true; editor.setValue(state.text); changing=false; }
     applyLayout('preview');

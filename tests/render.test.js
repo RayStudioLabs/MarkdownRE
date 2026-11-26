@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {visibleOffsets} from '../web/src/find-preview.js';
 import {renderMarkdown} from '../web/src/render.js';
 test('renders GFM, math and fenced code', async () => {
   const html = await renderMarkdown('# Hello\n\n|a|b|\n|-|-|\n|1|2|\n\n$x^2$\n\n```js\nconst n = 1\n```');
@@ -69,4 +70,19 @@ test('literal strings do not alter Markdown links, code blocks, or unsafe HTML f
   assert.match(html, /hljs/);
   assert.doesNotMatch(html, /<script/);
   assert.match(html, /&#x3C;script>alert\(1\)&#x3C;\/script>/);
+});
+
+test('search maps visible text through lists, tables, quotes, fences and hidden link targets', async () => {
+  const source = '"**literal**"\n\n- [x] first\n- next\n\n> quoted\n> line\n\n|header|other|\n|---|---|\n|left|right|\n\n```js\njs + code\n```\n\n[caption](hidden) after';
+  let spans;
+  const html = await renderMarkdown(source, result => { spans = result; });
+  const visible = html.replace(/<[^>]*>/g, '');
+  for (const word of ['literal', 'first', 'next', 'quoted', 'line', 'header', 'other', 'left', 'right', 'js + code', 'caption', 'after']) {
+    const start = source.indexOf(word);
+    const offsets = visibleOffsets(spans, start, start + word.length);
+    assert.ok(offsets, word);
+    assert.equal(visible.slice(...offsets), word);
+  }
+  const hidden = source.indexOf('hidden');
+  assert.equal(visibleOffsets(spans, hidden, hidden + 6), null);
 });
